@@ -1,0 +1,1106 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Marcador</title>
+<style>
+  :root{
+    --bg-top:      #1b1b22;
+    --bg-bottom:   #262630;
+    --panel-normal:#eef0f4;
+    --panel-fg:    #101418;
+    --red-bg:      #d64343;
+    --green-bg:    #2fb56b;
+    --accent:      #5aa2ff;
+    --text:        #e8eaf0;
+    --text-dim:    #9aa0ac;
+  }
+
+  *{ box-sizing: border-box; }
+  html, body{ height: 100%; }
+
+  body{
+    margin: 0;
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding: 20px 16px 32px;
+    font-family: "Segoe UI", Inter, Roboto, system-ui, -apple-system, sans-serif;
+    background: linear-gradient(180deg, var(--bg-top) 0%, var(--bg-bottom) 100%);
+    color: var(--text);
+    -webkit-text-size-adjust: 100%;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .app{
+    width: 100%;
+    max-width: 900px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+  }
+
+  .header{
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 0 4px;
+  }
+
+  .header h1{
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: .3px;
+    color: var(--text);
+  }
+
+  .header .hint{
+    font-size: 12.5px;
+    color: var(--text-dim);
+  }
+
+  .columns{
+    display: flex;
+    gap: 16px;
+    align-items: stretch;
+  }
+
+  .column{
+    flex: 1 1 0;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 18px 16px 16px;
+    border-radius: 16px;
+    background: var(--panel);
+    color: var(--fg);
+    box-shadow:
+      0 10px 30px rgba(0,0,0,.35),
+      inset 0 1px 0 rgba(255,255,255,.08);
+    transition: background-color .22s ease, color .22s ease, box-shadow .22s ease;
+
+    --panel:        var(--panel-normal);
+    --fg:           var(--panel-fg);
+    --field-bg:     #ffffff;
+    --field-border: #d0d4dc;
+    --field-ph:     #98a0ad;
+    --divider:      rgba(0,0,0,.08);
+  }
+
+  .column.red,
+  .column.green{
+    --fg:           #ffffff;
+    --field-bg:     rgba(0, 0, 0, .22);
+    --field-border: rgba(255, 255, 255, .35);
+    --field-ph:     rgba(255, 255, 255, .65);
+    --divider:      rgba(255, 255, 255, .25);
+  }
+
+  .column.red  {
+    --panel: var(--red-bg);
+    box-shadow:
+      0 10px 30px rgba(214, 67, 67, .35),
+      inset 0 1px 0 rgba(255,255,255,.12);
+  }
+  .column.green{
+    --panel: var(--green-bg);
+    box-shadow:
+      0 10px 30px rgba(47, 181, 107, .35),
+      inset 0 1px 0 rgba(255,255,255,.12);
+  }
+
+  .column input{
+    width: 100%;
+    padding: 10px 12px;
+    font: inherit;
+    font-size: 16px;
+    color: var(--fg);
+    background: var(--field-bg);
+    border: 1px solid var(--field-border);
+    border-radius: 10px;
+    outline: none;
+    transition: background-color .2s ease, border-color .2s ease,
+                box-shadow .2s ease, color .2s ease;
+  }
+
+  .column input::placeholder{ color: var(--field-ph); }
+
+  .column input:focus{
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(90, 162, 255, .3);
+  }
+
+  .column input.name-edit{
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid var(--divider);
+    border-radius: 0;
+    padding: 4px 2px 8px;
+    text-align: center;
+    font-weight: 600;
+    font-size: 15.5px;
+    letter-spacing: .5px;
+    text-transform: uppercase;
+  }
+  .column input.name-edit:focus{
+    box-shadow: none;
+    border-bottom-color: currentColor;
+  }
+
+  .rows{
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .row-input{
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    font-weight: 500;
+  }
+
+  .sum{
+    margin-top: auto;
+    padding-top: 12px;
+    border-top: 1px solid var(--divider);
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .sum-label{
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    opacity: .7;
+  }
+
+  .sum-value{
+    font-size: 26px;
+    font-weight: 700;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .controls{
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 14px 16px;
+    font-size: 14.5px;
+    color: var(--text-dim);
+    background: rgba(255,255,255,.04);
+    border: 1px solid rgba(255,255,255,.06);
+    border-radius: 14px;
+  }
+
+  .controls label{ letter-spacing: .3px; }
+
+  #threshold{
+    width: 110px;
+    padding: 10px 12px;
+    font: inherit;
+    font-size: 16px;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+    color: var(--text);
+    background: rgba(255,255,255,.05);
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: 10px;
+    outline: none;
+    transition: border-color .2s ease, box-shadow .2s ease, background-color .2s ease;
+  }
+  #threshold:focus{
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(90, 162, 255, .25);
+    background: rgba(255,255,255,.08);
+  }
+
+  .controls button{
+    padding: 10px 20px;
+    font: inherit;
+    font-size: 14.5px;
+    font-weight: 600;
+    letter-spacing: .4px;
+    color: var(--text);
+    background: rgba(255,255,255,.06);
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background-color .15s ease, border-color .15s ease,
+                transform .1s ease;
+  }
+  .controls button:hover{
+    background: rgba(255,255,255,.12);
+    border-color: rgba(255,255,255,.22);
+  }
+  .controls button:active{ transform: translateY(1px); }
+
+  #scan{
+    background: rgba(90,162,255,.18);
+    border-color: rgba(90,162,255,.45);
+    color: #cfe2ff;
+  }
+  #scan:hover{
+    background: rgba(90,162,255,.3);
+    border-color: rgba(90,162,255,.7);
+  }
+
+  /* ===== Modal cámara ===== */
+  .modal{
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.85);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    padding: 16px;
+  }
+  .modal[hidden]{ display: none; }
+
+  .modal-content{
+    width: 100%;
+    max-width: 760px;
+    max-height: 96vh;
+    background: #1b1b22;
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 16px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 60px rgba(0,0,0,.55);
+  }
+
+  .modal-header{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px;
+    border-bottom: 1px solid rgba(255,255,255,.08);
+  }
+  .modal-header h2{
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+  }
+  .modal-close{
+    background: none;
+    border: none;
+    color: var(--text);
+    font-size: 22px;
+    cursor: pointer;
+    padding: 0 8px;
+    line-height: 1;
+  }
+  .modal-close:hover{ color: #fff; }
+
+  .cam-stage{
+    position: relative;
+    background: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 240px;
+    max-height: 58vh;
+    overflow: hidden;
+  }
+  .cam-stage video,
+  .cam-stage canvas{
+    max-width: 100%;
+    max-height: 58vh;
+    display: block;
+  }
+  .cam-stage video[hidden],
+  .cam-stage canvas[hidden]{ display: none; }
+
+  .modal-info{
+    padding: 12px 18px;
+    font-size: 14px;
+    color: var(--text-dim);
+    text-align: center;
+    min-height: 44px;
+    line-height: 1.4;
+  }
+
+  .modal-actions{
+    display: flex;
+    gap: 8px;
+    padding: 0 18px 18px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .modal-actions button{
+    padding: 10px 18px;
+    font: inherit;
+    font-size: 14.5px;
+    font-weight: 600;
+    border-radius: 10px;
+    cursor: pointer;
+    background: rgba(255,255,255,.06);
+    color: var(--text);
+    border: 1px solid rgba(255,255,255,.12);
+    transition: background-color .15s ease, border-color .15s ease;
+  }
+  .modal-actions button:hover{ background: rgba(255,255,255,.12); }
+  .modal-actions .btn-primary{
+    background: var(--accent);
+    color: #0a0e14;
+    border-color: var(--accent);
+  }
+  .modal-actions .btn-primary:hover{ background: #7bb4ff; }
+  .modal-actions .btn-a{
+    background: rgba(238,240,244,.9);
+    color: #101418;
+    border-color: rgba(238,240,244,.9);
+  }
+  .modal-actions .btn-b{
+    background: rgba(90,162,255,.85);
+    color: #0a0e14;
+    border-color: rgba(90,162,255,.85);
+  }
+
+  @media (max-width: 480px){
+    body{ padding: 14px 10px 24px; }
+    .column{ padding: 14px 12px; gap: 10px; border-radius: 14px; }
+    .columns{ gap: 10px; }
+    .sum-value{ font-size: 22px; }
+    .header h1{ font-size: 16px; }
+    .header .hint{ display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <div class="header">
+    <h1>Marcador</h1>
+    <span class="hint">Los datos se guardan solos · Reiniciar limpia las filas</span>
+  </div>
+
+  <div class="columns">
+
+    <section class="column normal" id="col_a">
+      <input class="name-edit" type="text" placeholder="Columna A" autocomplete="off">
+      <div class="rows"></div>
+      <div class="sum">
+        <span class="sum-label">Suma</span>
+        <span class="sum-value">0</span>
+      </div>
+    </section>
+
+    <section class="column normal" id="col_b">
+      <input class="name-edit" type="text" placeholder="Columna B" autocomplete="off">
+      <div class="rows"></div>
+      <div class="sum">
+        <span class="sum-label">Suma</span>
+        <span class="sum-value">0</span>
+      </div>
+    </section>
+
+  </div>
+
+  <div class="controls">
+    <label for="threshold">Umbral</label>
+    <input id="threshold" type="text" inputmode="decimal" value="150" autocomplete="off">
+    <button id="scan" type="button">📷 Escanear fichas</button>
+    <button id="reset" type="button">Reiniciar</button>
+  </div>
+
+</div>
+
+<!-- ================= Modal cámara ================= -->
+<div class="modal" id="camModal" hidden>
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>Escanear fichas de dominó</h2>
+      <button class="modal-close" id="camClose" type="button">✕</button>
+    </div>
+
+    <div class="cam-stage">
+      <video id="camVideo" playsinline autoplay muted></video>
+      <canvas id="camCanvas" hidden></canvas>
+    </div>
+
+    <div class="modal-info" id="camInfo">
+      Apunta la cámara a las fichas y pulsa «Capturar y contar».<br>
+      Consejo: fondo contrastante, luz uniforme, fichas sin solaparse.
+    </div>
+
+    <div class="modal-actions">
+      <button id="camCapture" class="btn-primary" type="button">Capturar y contar</button>
+      <button id="camRetry" type="button" hidden>↻ Reintentar</button>
+      <button id="camAddA" class="btn-a" type="button" hidden>→ Columna A</button>
+      <button id="camAddB" class="btn-b" type="button" hidden>→ Columna B</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  'use strict';
+
+  /* =========================================================
+     Persistencia (localStorage)
+     ========================================================= */
+  const STORAGE_KEY = 'marcador_state_v1';
+
+  function readStorage(){
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return null;
+      const data = JSON.parse(raw);
+      if (!data || typeof data !== 'object') return null;
+      return data;
+    } catch(e){ return null; }
+  }
+
+  function writeStorage(state){
+    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+    catch(e){ /* modo privado o cuota llena */ }
+  }
+
+  /* =========================================================
+     Utilidades numéricas
+     ========================================================= */
+  const FLOAT_RE = /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/;
+
+  function isValidFloat(s){ return FLOAT_RE.test(s); }
+
+  function toFloat(s){
+    const t = String(s ?? '').trim();
+    if (!isValidFloat(t)) return 0;
+    const v = parseFloat(t);
+    return Number.isFinite(v) ? v : 0;
+  }
+
+  function formatNumber(n){
+    if (!Number.isFinite(n)) return '0';
+    if (Number.isInteger(n)) return String(n);
+    return String(Number(n.toFixed(10)));
+  }
+
+  /* =========================================================
+     Column
+     ========================================================= */
+  class Column {
+    constructor(root, onSumChanged, initial = null){
+      this.root         = root;
+      this.onSumChanged = onSumChanged;
+      this.rowsEl       = root.querySelector('.rows');
+      this.nameEl       = root.querySelector('.name-edit');
+      this.sumEl        = root.querySelector('.sum-value');
+      this.sum          = 0;
+
+      if (initial && typeof initial === 'object'){
+        if (typeof initial.name === 'string') this.nameEl.value = initial.name;
+        const rows = Array.isArray(initial.rows) ? initial.rows : [];
+        if (rows.length > 0){
+          for (const v of rows) this.addRow(v ?? '', false);
+        } else {
+          this.addRow('', false);
+        }
+      } else {
+        this.addRow('', false);
+      }
+
+      this.nameEl.addEventListener('input', () => {
+        if (this.onSumChanged) this.onSumChanged();
+      });
+
+      this.updateSum();
+    }
+
+    addRow(value = '', focus = true){
+      const input = document.createElement('input');
+      input.type         = 'text';
+      input.inputMode    = 'decimal';
+      input.autocomplete = 'off';
+      input.spellcheck   = false;
+      input.placeholder  = '0';
+      input.className    = 'row-input';
+      input.value        = value;
+
+      input.addEventListener('input',  () => this.handleInput(input, false));
+      input.addEventListener('blur',   () => this.handleInput(input, true));
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter'){
+          e.preventDefault();
+          this.handleInput(input, true);
+        }
+      });
+
+      this.rowsEl.appendChild(input);
+      if (focus && value === '') input.focus();
+      return input;
+    }
+
+    isEmpty(el){ return el.value.trim() === ''; }
+
+    handleInput(input, addFocus){
+      this.updateSum();
+
+      const val    = input.value.trim();
+      const isNum  = val !== '' && isValidFloat(val);
+      const isZero = isNum && parseFloat(val) === 0;
+
+      if (this.isEmpty(input)){
+        const next = input.nextElementSibling;
+        if (next && this.isEmpty(next)){
+          next.remove();
+          this.updateSum();
+          return;
+        }
+      }
+
+      if (isNum && !isZero && this.rowsEl.lastElementChild === input){
+        this.addRow('', addFocus);
+      }
+    }
+
+    updateSum(){
+      let total = 0;
+      for (const el of this.rowsEl.children){
+        const t = el.value.trim();
+        if (t !== '' && isValidFloat(t)) total += parseFloat(t);
+      }
+      this.sum = total;
+      if (this.sumEl) this.sumEl.textContent = formatNumber(total);
+      if (this.onSumChanged) this.onSumChanged();
+    }
+
+    /* Escribe un valor en la primera fila vacía (o crea una nueva).
+       Pensado para el escáner: no roba el foco. */
+    addValue(v){
+      let target = null;
+      for (const el of this.rowsEl.children){
+        if (el.value.trim() === ''){ target = el; break; }
+      }
+      if (!target) target = this.addRow('', false);
+
+      target.value = formatNumber(v);
+      this.handleInput(target, false);
+      this.updateSum();
+    }
+
+    resetRows(){
+      while (this.rowsEl.children.length > 1){
+        this.rowsEl.removeChild(this.rowsEl.lastElementChild);
+      }
+      const first = this.rowsEl.firstElementChild;
+      if (first) first.value = '';
+      this.updateSum();
+    }
+
+    getSum(){ return this.sum; }
+    getName(){ return this.nameEl.value; }
+    getRowValues(){
+      return Array.from(this.rowsEl.children).map(el => el.value);
+    }
+  }
+
+  /* =========================================================
+     Estado global
+     ========================================================= */
+  let colA = null;
+  let colB = null;
+  let loading = true;
+
+  const thresholdEl = document.getElementById('threshold');
+  const resetBtn    = document.getElementById('reset');
+  const scanBtn     = document.getElementById('scan');
+
+  function setState(el, state){
+    el.classList.remove('normal', 'red', 'green');
+    el.classList.add(state);
+  }
+
+  function persist(){
+    if (loading) return;
+    const state = {
+      threshold: thresholdEl.value,
+      colA: { name: colA.getName(), rows: colA.getRowValues() },
+      colB: { name: colB.getName(), rows: colB.getRowValues() }
+    };
+    writeStorage(state);
+  }
+
+  function updateColors(){
+    if (!colA || !colB) return;
+
+    const threshold = toFloat(thresholdEl.value);
+    const sumA = colA.getSum();
+    const sumB = colB.getSum();
+
+    const aAbove = sumA >= threshold;
+    const bAbove = sumB >= threshold;
+
+    let stateA = 'normal';
+    let stateB = 'normal';
+
+    if (aAbove && !bAbove){ stateA = 'green'; stateB = 'red'; }
+    else if (bAbove && !aAbove){ stateA = 'red'; stateB = 'green'; }
+    else if (aAbove && bAbove){ stateA = 'red'; stateB = 'red'; }
+
+    setState(colA.root, stateA);
+    setState(colB.root, stateB);
+
+    persist();
+  }
+
+  /* =========================================================
+     ============  VISIÓN: detección de fichas  =============
+     ========================================================= */
+
+  const PROC_W = 640;                 // ancho de trabajo
+  const PIP_MIN_AREA_PCT = 0.00010;   // 0.010 % de la imagen
+  const PIP_MAX_AREA_PCT = 0.00500;   // 0.500 %
+  const PIP_MAX_ASPECT   = 1.75;      // máx ancho/alto
+  const PIP_MIN_FILL     = 0.55;      // relleno mín. en el bbox
+  const PIP_MIN_SIDE     = 3;         // px
+  const GROUP_DIST_FAC   = 6.0;       // × diámetro mediano
+  const GROUP_MAX_PIPS   = 12;        // una ficha nunca tiene más
+
+  /* ---------- Grayscale + blur ---------- */
+  function toGray(imgData, w, h){
+    const gray = new Uint8Array(w * h);
+    const d = imgData.data;
+    for (let i = 0, n = w * h; i < n; i++){
+      gray[i] = (d[i*4] * 0.299 + d[i*4+1] * 0.587 + d[i*4+2] * 0.114) | 0;
+    }
+    // blur 3x3 muy ligero (reduce ruido del sensor)
+    const out = new Uint8Array(w * h);
+    for (let y = 0; y < h; y++){
+      for (let x = 0; x < w; x++){
+        let s = 0, c = 0;
+        for (let dy = -1; dy <= 1; dy++){
+          const ny = y + dy;
+          if (ny < 0 || ny >= h) continue;
+          for (let dx = -1; dx <= 1; dx++){
+            const nx = x + dx;
+            if (nx < 0 || nx >= w) continue;
+            s += gray[ny * w + nx];
+            c++;
+          }
+        }
+        out[y * w + x] = (s / c) | 0;
+      }
+    }
+    return out;
+  }
+
+  /* ---------- Otsu ---------- */
+  function otsu(gray){
+    const hist = new Uint32Array(256);
+    for (let i = 0; i < gray.length; i++) hist[gray[i]]++;
+    const total = gray.length;
+    let sum = 0;
+    for (let i = 0; i < 256; i++) sum += i * hist[i];
+
+    let sumB = 0, wB = 0, max = -1, thr = 128;
+    for (let t = 0; t < 256; t++){
+      wB += hist[t];
+      if (wB === 0) continue;
+      const wF = total - wB;
+      if (wF === 0) break;
+      sumB += t * hist[t];
+      const mB = sumB / wB;
+      const mF = (sum - sumB) / wF;
+      const between = wB * wF * (mB - mF) * (mB - mF);
+      if (between > max){ max = between; thr = t; }
+    }
+    return thr;
+  }
+
+  /* ---------- Componentes conexas (4-vecinos, iterativo) ---------- */
+  function connectedComponents(bin, w, h){
+    const labels = new Int32Array(w * h).fill(-1);
+    const stack  = new Int32Array(w * h);
+    const comps  = [];
+
+    for (let y = 0; y < h; y++){
+      for (let x = 0; x < w; x++){
+        const idx = y * w + x;
+        if (!bin[idx] || labels[idx] !== -1) continue;
+
+        const label = comps.length;
+        let sp = 0;
+        stack[sp++] = idx;
+        labels[idx] = label;
+
+        let area = 0, minX = x, maxX = x, minY = y, maxY = y;
+        let sumX = 0, sumY = 0;
+
+        while (sp > 0){
+          const p  = stack[--sp];
+          const py = (p / w) | 0;
+          const px = p - py * w;
+
+          area++; sumX += px; sumY += py;
+          if (px < minX) minX = px;
+          if (px > maxX) maxX = px;
+          if (py < minY) minY = py;
+          if (py > maxY) maxY = py;
+
+          if (px > 0){     const ni = p - 1; if (bin[ni] && labels[ni] === -1){ labels[ni] = label; stack[sp++] = ni; } }
+          if (px < w - 1){ const ni = p + 1; if (bin[ni] && labels[ni] === -1){ labels[ni] = label; stack[sp++] = ni; } }
+          if (py > 0){     const ni = p - w; if (bin[ni] && labels[ni] === -1){ labels[ni] = label; stack[sp++] = ni; } }
+          if (py < h - 1){ const ni = p + w; if (bin[ni] && labels[ni] === -1){ labels[ni] = label; stack[sp++] = ni; } }
+        }
+
+        const bw = maxX - minX + 1;
+        const bh = maxY - minY + 1;
+        comps.push({
+          label, area, minX, maxX, minY, maxY,
+          width: bw, height: bh,
+          cx: sumX / area, cy: sumY / area,
+          fill: area / (bw * bh)
+        });
+      }
+    }
+    return comps;
+  }
+
+  /* ---------- ¿Parece un pip? ---------- */
+  function isPipLike(c, imgArea){
+    const aR = c.area / imgArea;
+    if (aR < PIP_MIN_AREA_PCT || aR > PIP_MAX_AREA_PCT) return false;
+    if (c.width < PIP_MIN_SIDE || c.height < PIP_MIN_SIDE) return false;
+
+    const aspect = Math.max(c.width, c.height) / Math.min(c.width, c.height);
+    if (aspect > PIP_MAX_ASPECT) return false;
+    if (c.fill < PIP_MIN_FILL) return false;
+
+    // círculo: area / (π · r²) con r = (w+h)/4
+    const r = (c.width + c.height) / 4;
+    const circleArea = Math.PI * r * r;
+    if (c.area / circleArea < 0.55) return false;
+
+    return true;
+  }
+
+  /* ---------- Agrupar pips en fichas (Union-Find) ---------- */
+  function groupPips(pips){
+    if (pips.length === 0) return [];
+
+    const areas = pips.map(p => p.area).sort((a, b) => a - b);
+    const medianArea = areas[Math.floor(areas.length / 2)];
+    const medianD    = Math.sqrt(medianArea / Math.PI) * 2;
+
+    const maxDist   = medianD * GROUP_DIST_FAC;
+    const maxDistSq = maxDist * maxDist;
+
+    const parent = pips.map((_, i) => i);
+    const find = (i) => {
+      while (parent[i] !== i){ parent[i] = parent[parent[i]]; i = parent[i]; }
+      return i;
+    };
+    const union = (a, b) => {
+      const ra = find(a), rb = find(b);
+      if (ra !== rb) parent[ra] = rb;
+    };
+
+    for (let i = 0; i < pips.length; i++){
+      for (let j = i + 1; j < pips.length; j++){
+        const dx = pips[i].cx - pips[j].cx;
+        const dy = pips[i].cy - pips[j].cy;
+        if (dx*dx + dy*dy < maxDistSq) union(i, j);
+      }
+    }
+
+    const map = new Map();
+    for (let i = 0; i < pips.length; i++){
+      const r = find(i);
+      if (!map.has(r)) map.set(r, []);
+      map.get(r).push(pips[i]);
+    }
+    return Array.from(map.values());
+  }
+
+  /* ---------- Detectar pips de una polaridad ---------- */
+  function detectPips(gray, w, h, polarity){
+    const thr = otsu(gray);
+    const bin = new Uint8Array(w * h);
+    if (polarity === 'dark'){
+      for (let i = 0; i < gray.length; i++) bin[i] = gray[i] < thr ? 1 : 0;
+    } else {
+      for (let i = 0; i < gray.length; i++) bin[i] = gray[i] >= thr ? 1 : 0;
+    }
+    const comps = connectedComponents(bin, w, h);
+    const imgArea = w * h;
+    return comps.filter(c => isPipLike(c, imgArea));
+  }
+
+  /* ---------- Pipeline completo sobre un frame ---------- */
+  function processFrame(srcCanvas){
+    const srcW = srcCanvas.width;
+    const srcH = srcCanvas.height;
+    const PH   = Math.round(srcH * PROC_W / srcW);
+
+    // Escalar
+    const tmp = document.createElement('canvas');
+    tmp.width  = PROC_W;
+    tmp.height = PH;
+    const tctx = tmp.getContext('2d', { willReadFrequently: true });
+    tctx.drawImage(srcCanvas, 0, 0, PROC_W, PH);
+
+    const imgData = tctx.getImageData(0, 0, PROC_W, PH);
+    const gray    = toGray(imgData, PROC_W, PH);
+
+    // Probar ambas polaridades
+    const darkPips  = detectPips(gray, PROC_W, PH, 'dark');
+    const lightPips = detectPips(gray, PROC_W, PH, 'light');
+
+    const darkGroups  = groupPips(darkPips).filter(g => g.length >= 1 && g.length <= GROUP_MAX_PIPS);
+    const lightGroups = groupPips(lightPips).filter(g => g.length >= 1 && g.length <= GROUP_MAX_PIPS);
+
+    let chosenPips, chosenGroups;
+    if (lightGroups.length > darkGroups.length){
+      chosenPips   = lightPips;
+      chosenGroups = lightGroups;
+    } else {
+      chosenPips   = darkPips;
+      chosenGroups = darkGroups;
+    }
+
+    // Escalar pips a resolución original para el overlay
+    const sx = srcW / PROC_W;
+    const sy = srcH / PH;
+    for (const p of chosenPips){
+      p.cx *= sx; p.cy *= sy;
+      p.minX *= sx; p.maxX *= sx;
+      p.minY *= sy; p.maxY *= sy;
+      p.width *= sx; p.height *= sy;
+      p.area *= sx * sy;
+    }
+    // Reagrupar en resolución original (mismo resultado, coords nuevas)
+    chosenGroups = groupPips(chosenPips).filter(g => g.length >= 1 && g.length <= GROUP_MAX_PIPS);
+
+    const total = chosenGroups.reduce((s, g) => s + g.length, 0);
+
+    return { pips: chosenPips, groups: chosenGroups, total };
+  }
+
+  /* =========================================================
+     Controlador del modal de cámara
+     ========================================================= */
+  const CamScanner = (() => {
+    const modal      = document.getElementById('camModal');
+    const video      = document.getElementById('camVideo');
+    const canvas     = document.getElementById('camCanvas');
+    const infoEl     = document.getElementById('camInfo');
+    const btnClose   = document.getElementById('camClose');
+    const btnCapture = document.getElementById('camCapture');
+    const btnRetry   = document.getElementById('camRetry');
+    const btnAddA    = document.getElementById('camAddA');
+    const btnAddB    = document.getElementById('camAddB');
+
+    let stream  = null;
+    let result  = null;
+    let captured = false;
+
+    function resetUI(){
+      result = null;
+      captured = false;
+      video.hidden = false;
+      canvas.hidden = true;
+      infoEl.innerHTML = 'Apunta la cámara a las fichas y pulsa «Capturar y contar».<br>Consejo: fondo contrastante, luz uniforme, fichas sin solaparse.';
+      btnCapture.hidden = false;
+      btnRetry.hidden   = true;
+      btnAddA.hidden    = true;
+      btnAddB.hidden    = true;
+      btnCapture.disabled = false;
+    }
+
+    async function open(){
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+        alert('Tu navegador no soporta acceso a la cámara (getUserMedia).');
+        return;
+      }
+      resetUI();
+      modal.hidden = false;
+
+      try{
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: { ideal: 'environment' },
+            width:  { ideal: 1280 },
+            height: { ideal: 720 }
+          },
+          audio: false
+        });
+      } catch(err){
+        modal.hidden = true;
+        alert('No se pudo acceder a la cámara:\n' + (err.message || err.name));
+        return;
+      }
+
+      video.srcObject = stream;
+      try{ await video.play(); }
+      catch(e){ /* autoplay a veces se queja, se ignora */ }
+    }
+
+    function close(){
+      if (stream){
+        stream.getTracks().forEach(t => t.stop());
+        stream = null;
+      }
+      video.srcObject = null;
+      modal.hidden = true;
+    }
+
+    function capture(){
+      const vw = video.videoWidth;
+      const vh = video.videoHeight;
+      if (!vw || !vh){
+        infoEl.textContent = 'La cámara aún no está lista. Espera un segundo y reintenta.';
+        return;
+      }
+
+      canvas.width  = vw;
+      canvas.height = vh;
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      ctx.drawImage(video, 0, 0, vw, vh);
+
+      // Procesar
+      let res;
+      try{ res = processFrame(canvas); }
+      catch(e){
+        console.error(e);
+        infoEl.textContent = 'Error procesando la imagen: ' + e.message;
+        return;
+      }
+      result = res;
+      captured = true;
+
+      // Dibujar overlay
+      drawOverlay(ctx, res);
+
+      video.hidden = true;
+      canvas.hidden = false;
+
+      const n = res.groups.length;
+      const t = res.total;
+
+      if (n === 0){
+        infoEl.innerHTML = 'No se detectaron fichas.<br>Prueba con más contraste, mejor luz y las fichas separadas.';
+        btnCapture.hidden = true;
+        btnRetry.hidden   = false;
+        btnAddA.hidden    = true;
+        btnAddB.hidden    = true;
+      } else {
+        infoEl.innerHTML =
+          `Detectadas <strong>${n}</strong> ficha(s) · ` +
+          `Suma total: <strong style="color:#7bb4ff;font-size:1.1em">${t}</strong><br>` +
+          `<span style="font-size:12px;opacity:.7">Revisa los círculos azules antes de añadir.</span>`;
+        btnCapture.hidden = true;
+        btnRetry.hidden   = false;
+        btnAddA.hidden    = false;
+        btnAddB.hidden    = false;
+      }
+    }
+
+    function drawOverlay(ctx, res){
+      // Círculos sobre cada pip detectado
+      ctx.save();
+      for (const p of res.pips){
+        const r = Math.max(p.width, p.height) * 0.72;
+        ctx.beginPath();
+        ctx.arc(p.cx, p.cy, r, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(90,162,255,.95)';
+        ctx.lineWidth   = Math.max(2, Math.round(ctx.canvas.width / 400));
+        ctx.stroke();
+      }
+
+      // Recuadro + número por grupo/ficha
+      ctx.font = 'bold ' + Math.max(18, Math.round(ctx.canvas.width / 40)) + 'px sans-serif';
+      ctx.textBaseline = 'bottom';
+      for (const g of res.groups){
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        for (const p of g){
+          if (p.minX < minX) minX = p.minX;
+          if (p.minY < minY) minY = p.minY;
+          if (p.maxX > maxX) maxX = p.maxX;
+          if (p.maxY > maxY) maxY = p.maxY;
+        }
+        const pad = Math.max(8, Math.round(ctx.canvas.width / 100));
+        ctx.strokeStyle = 'rgba(255,200,80,.95)';
+        ctx.lineWidth   = Math.max(2, Math.round(ctx.canvas.width / 400));
+        ctx.strokeRect(minX - pad, minY - pad, (maxX - minX) + pad*2, (maxY - minY) + pad*2);
+
+        // Etiqueta con el valor de la ficha
+        const label = String(g.length);
+        ctx.fillStyle = 'rgba(0,0,0,.6)';
+        const tw = ctx.measureText(label).width;
+        const th = parseInt(ctx.font, 10) || 20;
+        ctx.fillRect(minX - pad, minY - pad - th - 6, tw + 12, th + 6);
+        ctx.fillStyle = 'rgba(255,200,80,1)';
+        ctx.fillText(label, minX - pad + 6, minY - pad - 4);
+      }
+      ctx.restore();
+    }
+
+    function retry(){
+      resetUI();
+    }
+
+    function addTo(column){
+      if (!result || !column) return;
+      column.addValue(result.total);
+      close();
+    }
+
+    // Listeners
+    btnClose.addEventListener('click', close);
+    btnCapture.addEventListener('click', capture);
+    btnRetry.addEventListener('click', retry);
+    btnAddA.addEventListener('click', () => addTo(colA));
+    btnAddB.addEventListener('click', () => addTo(colB));
+
+    // Cerrar con Escape
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !modal.hidden) close();
+    });
+
+    return { open, close };
+  })();
+
+  /* =========================================================
+     Arranque
+     ========================================================= */
+  const saved = readStorage();
+
+  if (saved && (typeof saved.threshold === 'string' || typeof saved.threshold === 'number')){
+    thresholdEl.value = String(saved.threshold);
+  }
+
+  colA = new Column(document.getElementById('col_a'), updateColors, saved ? saved.colA : null);
+  colB = new Column(document.getElementById('col_b'), updateColors, saved ? saved.colB : null);
+
+  thresholdEl.addEventListener('input', updateColors);
+
+  resetBtn.addEventListener('click', () => {
+    colA.resetRows();
+    colB.resetRows();
+    updateColors();
+  });
+
+  scanBtn.addEventListener('click', () => CamScanner.open());
+
+  loading = false;
+  updateColors();
+})();
+</script>
+
+</body>
+</html>
