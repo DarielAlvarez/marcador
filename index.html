@@ -6,32 +6,22 @@
 <title>Marcador</title>
 <style>
   :root{
-    --bg-top:      #1b1b22;
-    --bg-bottom:   #262630;
-    --panel-normal:#eef0f4;
-    --panel-fg:    #101418;
-    --red-bg:      #d64343;
-    --green-bg:    #2fb56b;
-    --accent:      #5aa2ff;
-    --text:        #e8eaf0;
-    --text-dim:    #9aa0ac;
+    --bg-top:#1b1b22; --bg-bottom:#262630;
+    --panel-normal:#eef0f4; --panel-fg:#101418;
+    --red-bg:#d64343; --green-bg:#2fb56b;
+    --accent:#5aa2ff; --text:#e8eaf0; --text-dim:#9aa0ac;
   }
-  *{ box-sizing: border-box; }
-  html, body{ height: 100%; }
+  *{ box-sizing:border-box; }
+  html, body{ height:100%; }
   body{
-    margin: 0;
-    min-height: 100vh;
-    min-height: 100dvh;
-    padding: 20px 16px 32px;
-    font-family: "Segoe UI", Inter, Roboto, system-ui, -apple-system, sans-serif;
-    background: linear-gradient(180deg, var(--bg-top) 0%, var(--bg-bottom) 100%);
-    color: var(--text);
-    -webkit-text-size-adjust: 100%;
-    -webkit-font-smoothing: antialiased;
+    margin:0; min-height:100vh; min-height:100dvh; padding:20px 16px 32px;
+    font-family:"Segoe UI",Inter,Roboto,system-ui,-apple-system,sans-serif;
+    background:linear-gradient(180deg,var(--bg-top) 0%,var(--bg-bottom) 100%);
+    color:var(--text); -webkit-text-size-adjust:100%; -webkit-font-smoothing:antialiased;
   }
   .app{ width:100%; max-width:900px; margin:0 auto; display:flex; flex-direction:column; gap:22px; }
   .header{ display:flex; align-items:baseline; justify-content:space-between; gap:12px; padding:0 4px; }
-  .header h1{ margin:0; font-size:18px; font-weight:600; letter-spacing:.3px; color:var(--text); }
+  .header h1{ margin:0; font-size:18px; font-weight:600; letter-spacing:.3px; }
   .header .hint{ font-size:12.5px; color:var(--text-dim); }
   .columns{ display:flex; gap:16px; align-items:stretch; }
   .column{
@@ -40,8 +30,7 @@
     box-shadow:0 10px 30px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.08);
     transition:background-color .22s ease, color .22s ease, box-shadow .22s ease;
     --panel:var(--panel-normal); --fg:var(--panel-fg);
-    --field-bg:#ffffff; --field-border:#d0d4dc; --field-ph:#98a0ad;
-    --divider:rgba(0,0,0,.08);
+    --field-bg:#ffffff; --field-border:#d0d4dc; --field-ph:#98a0ad; --divider:rgba(0,0,0,.08);
   }
   .column.red,.column.green{
     --fg:#ffffff; --field-bg:rgba(0,0,0,.22); --field-border:rgba(255,255,255,.35);
@@ -58,7 +47,8 @@
   .column input:focus{ border-color:var(--accent); box-shadow:0 0 0 3px rgba(90,162,255,.3); }
   .column input.name-edit{
     background:transparent; border:none; border-bottom:2px solid var(--divider); border-radius:0;
-    padding:4px 2px 8px; text-align:center; font-weight:600; font-size:15.5px; letter-spacing:.5px; text-transform:uppercase;
+    padding:4px 2px 8px; text-align:center; font-weight:600; font-size:15.5px;
+    letter-spacing:.5px; text-transform:uppercase;
   }
   .column input.name-edit:focus{ box-shadow:none; border-bottom-color:currentColor; }
   .rows{ display:flex; flex-direction:column; gap:8px; }
@@ -71,43 +61,34 @@
     padding:14px 16px; font-size:14.5px; color:var(--text-dim);
     background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.06); border-radius:14px;
   }
-  .controls label{ letter-spacing:.3px; }
   #threshold{
     width:110px; padding:10px 12px; font:inherit; font-size:16px; text-align:center;
     font-variant-numeric:tabular-nums; color:var(--text);
     background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.12); border-radius:10px; outline:none;
-    transition:border-color .2s ease, box-shadow .2s ease, background-color .2s ease;
   }
   #threshold:focus{ border-color:var(--accent); box-shadow:0 0 0 3px rgba(90,162,255,.25); background:rgba(255,255,255,.08); }
   .controls button{
     padding:10px 20px; font:inherit; font-size:14.5px; font-weight:600; letter-spacing:.4px;
     color:var(--text); background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12);
-    border-radius:10px; cursor:pointer;
-    transition:background-color .15s ease, border-color .15s ease, transform .1s ease;
+    border-radius:10px; cursor:pointer; transition:background-color .15s ease, border-color .15s ease, transform .1s ease;
   }
   .controls button:hover{ background:rgba(255,255,255,.12); border-color:rgba(255,255,255,.22); }
   .controls button:active{ transform:translateY(1px); }
   #scan{ background:rgba(90,162,255,.18); border-color:rgba(90,162,255,.45); color:#cfe2ff; }
   #scan:hover{ background:rgba(90,162,255,.3); border-color:rgba(90,162,255,.7); }
 
-  .modal{
-    position:fixed; inset:0; background:rgba(0,0,0,.85); backdrop-filter:blur(4px);
-    display:flex; align-items:center; justify-content:center; z-index:100; padding:16px;
-  }
+  .modal{ position:fixed; inset:0; background:rgba(0,0,0,.85); backdrop-filter:blur(4px);
+    display:flex; align-items:center; justify-content:center; z-index:100; padding:16px; }
   .modal[hidden]{ display:none; }
-  .modal-content{
-    width:100%; max-width:760px; max-height:96vh;
-    background:#1b1b22; border:1px solid rgba(255,255,255,.08); border-radius:16px;
-    overflow:hidden; display:flex; flex-direction:column; box-shadow:0 20px 60px rgba(0,0,0,.55);
-  }
-  .modal-header{ display:flex; align-items:center; justify-content:space-between; padding:14px 18px; border-bottom:1px solid rgba(255,255,255,.08); }
+  .modal-content{ width:100%; max-width:760px; max-height:96vh; background:#1b1b22;
+    border:1px solid rgba(255,255,255,.08); border-radius:16px; overflow:hidden;
+    display:flex; flex-direction:column; box-shadow:0 20px 60px rgba(0,0,0,.55); }
+  .modal-header{ display:flex; align-items:center; justify-content:space-between;
+    padding:14px 18px; border-bottom:1px solid rgba(255,255,255,.08); }
   .modal-header h2{ margin:0; font-size:16px; font-weight:600; }
   .modal-close{ background:none; border:none; color:var(--text); font-size:22px; cursor:pointer; padding:0 8px; line-height:1; }
-  .modal-close:hover{ color:#fff; }
-  .cam-stage{
-    position:relative; background:#000; display:flex; align-items:center; justify-content:center;
-    min-height:240px; max-height:58vh; overflow:hidden;
-  }
+  .cam-stage{ position:relative; background:#000; display:flex; align-items:center; justify-content:center;
+    min-height:240px; max-height:58vh; overflow:hidden; }
   .cam-stage video,.cam-stage canvas{ max-width:100%; max-height:58vh; display:block; }
   .cam-stage video[hidden],.cam-stage canvas[hidden]{ display:none; }
   .modal-info{ padding:12px 18px; font-size:14px; color:var(--text-dim); text-align:center; min-height:44px; line-height:1.4; }
@@ -119,7 +100,6 @@
   }
   .modal-actions button:hover{ background:rgba(255,255,255,.12); }
   .modal-actions .btn-primary{ background:var(--accent); color:#0a0e14; border-color:var(--accent); }
-  .modal-actions .btn-primary:hover{ background:#7bb4ff; }
   .modal-actions .btn-a{ background:rgba(238,240,244,.9); color:#101418; border-color:rgba(238,240,244,.9); }
   .modal-actions .btn-b{ background:rgba(90,162,255,.85); color:#0a0e14; border-color:rgba(90,162,255,.85); }
 
@@ -136,7 +116,6 @@
 <body>
 
 <div class="app">
-
   <div class="header">
     <h1>Marcador</h1>
     <span class="hint">Los datos se guardan solos · Reiniciar limpia las filas</span>
@@ -161,7 +140,6 @@
     <button id="scan" type="button">📷 Escanear fichas</button>
     <button id="reset" type="button">Reiniciar</button>
   </div>
-
 </div>
 
 <div class="modal" id="camModal" hidden>
@@ -230,43 +208,29 @@
       this.nameEl = root.querySelector('.name-edit');
       this.sumEl  = root.querySelector('.sum-value');
       this.sum    = 0;
-
       if (initial && typeof initial === 'object'){
         if (typeof initial.name === 'string') this.nameEl.value = initial.name;
         const rows = Array.isArray(initial.rows) ? initial.rows : [];
         if (rows.length > 0){ for (const v of rows) this.addRow(v ?? '', false); }
         else { this.addRow('', false); }
-      } else {
-        this.addRow('', false);
-      }
-
+      } else { this.addRow('', false); }
       this.nameEl.addEventListener('input', () => { if (this.onSumChanged) this.onSumChanged(); });
       this.updateSum();
     }
-
     addRow(value = '', focus = true){
       const input = document.createElement('input');
-      input.type = 'text';
-      input.inputMode = 'decimal';
-      input.autocomplete = 'off';
-      input.spellcheck = false;
-      input.placeholder = '0';
-      input.className = 'row-input';
-      input.value = value;
-
+      input.type='text'; input.inputMode='decimal'; input.autocomplete='off';
+      input.spellcheck=false; input.placeholder='0'; input.className='row-input'; input.value=value;
       input.addEventListener('input',  () => this.handleInput(input, false));
       input.addEventListener('blur',   () => this.handleInput(input, true));
       input.addEventListener('keydown', (e) => {
         if (e.key === 'Enter'){ e.preventDefault(); this.handleInput(input, true); }
       });
-
       this.rowsEl.appendChild(input);
       if (focus && value === '') input.focus();
       return input;
     }
-
     isEmpty(el){ return el.value.trim() === ''; }
-
     handleInput(input, addFocus){
       this.updateSum();
       const val = input.value.trim();
@@ -278,7 +242,6 @@
       }
       if (isNum && !isZero && this.rowsEl.lastElementChild === input){ this.addRow('', addFocus); }
     }
-
     updateSum(){
       let total = 0;
       for (const el of this.rowsEl.children){
@@ -289,7 +252,6 @@
       if (this.sumEl) this.sumEl.textContent = formatNumber(total);
       if (this.onSumChanged) this.onSumChanged();
     }
-
     addValue(v){
       let target = null;
       for (const el of this.rowsEl.children){
@@ -300,7 +262,6 @@
       this.handleInput(target, false);
       this.updateSum();
     }
-
     resetRows(){
       while (this.rowsEl.children.length > 1){ this.rowsEl.removeChild(this.rowsEl.lastElementChild); }
       const first = this.rowsEl.firstElementChild;
@@ -322,7 +283,6 @@
     el.classList.remove('normal','red','green');
     el.classList.add(state);
   }
-
   function persist(){
     if (loading) return;
     writeStorage({
@@ -331,7 +291,6 @@
       colB: { name: colB.getName(), rows: colB.getRowValues() }
     });
   }
-
   function updateColors(){
     if (!colA || !colB) return;
     const threshold = toFloat(thresholdEl.value);
@@ -339,23 +298,22 @@
     const sumB = colB.getSum();
     const aAbove = sumA >= threshold;
     const bAbove = sumB >= threshold;
-
-    let stateA = 'normal', stateB = 'normal';
-    if (aAbove && !bAbove){ stateA = 'green'; stateB = 'red'; }
-    else if (bAbove && !aAbove){ stateA = 'red'; stateB = 'green'; }
-    else if (aAbove && bAbove){ stateA = 'red'; stateB = 'red'; }
-
+    let stateA='normal', stateB='normal';
+    if (aAbove && !bAbove){ stateA='green'; stateB='red'; }
+    else if (bAbove && !aAbove){ stateA='red'; stateB='green'; }
+    else if (aAbove && bAbove){ stateA='red'; stateB='red'; }
     setState(colA.root, stateA);
     setState(colB.root, stateB);
     persist();
   }
 
   /* =========================================================
-     ============  VISIÓN  (adaptativo)  ====================
+     ============  VISIÓN (ficha primero)  =================
      ========================================================= */
-  const PROC_W = 640;
 
-  /* --- Grayscale + blur ligero --- */
+  const PROC_W = 800;   // ancho de trabajo (más alto = mejor para fichas lejanas)
+
+  /* --- Grayscale + blur 3x3 --- */
   function toGray(imgData, w, h){
     const gray = new Uint8Array(w * h);
     const d = imgData.data;
@@ -366,10 +324,10 @@
     for (let y = 0; y < h; y++){
       for (let x = 0; x < w; x++){
         let s = 0, c = 0;
-        for (let dy = -1; dy <= 1; dy++){
-          const ny = y + dy; if (ny < 0 || ny >= h) continue;
-          for (let dx = -1; dx <= 1; dx++){
-            const nx = x + dx; if (nx < 0 || nx >= w) continue;
+        const y0 = Math.max(0, y-1), y1 = Math.min(h-1, y+1);
+        const x0 = Math.max(0, x-1), x1 = Math.min(w-1, x+1);
+        for (let ny = y0; ny <= y1; ny++){
+          for (let nx = x0; nx <= x1; nx++){
             s += gray[ny*w + nx]; c++;
           }
         }
@@ -386,7 +344,6 @@
     const total = gray.length;
     let sum = 0;
     for (let i = 0; i < 256; i++) sum += i * hist[i];
-
     let sumB = 0, wB = 0, max = -1, thr = 128;
     for (let t = 0; t < 256; t++){
       wB += hist[t];
@@ -396,32 +353,28 @@
       sumB += t * hist[t];
       const mB = sumB / wB;
       const mF = (sum - sumB) / wF;
-      const between = wB * wF * (mB - mF) * (mB - mF);
-      if (between > max){ max = between; thr = t; }
+      const b = wB * wF * (mB - mF) * (mB - mF);
+      if (b > max){ max = b; thr = t; }
     }
     return thr;
   }
 
-  /* --- Componentes conexas iterativo (4-vecinos) --- */
+  /* --- Componentes conexas 4-vecinos --- */
   function connectedComponents(bin, w, h){
     const labels = new Int32Array(w*h).fill(-1);
     const stack  = new Int32Array(w*h);
     const comps  = [];
-
     for (let y = 0; y < h; y++){
       for (let x = 0; x < w; x++){
         const idx = y*w + x;
         if (!bin[idx] || labels[idx] !== -1) continue;
-
         const label = comps.length;
         let sp = 0;
         stack[sp++] = idx;
         labels[idx] = label;
-
         let area = 0, minX = x, maxX = x, minY = y, maxY = y, sumX = 0, sumY = 0;
-
         while (sp > 0){
-          const p  = stack[--sp];
+          const p = stack[--sp];
           const py = (p / w) | 0;
           const px = p - py*w;
           area++; sumX += px; sumY += py;
@@ -429,13 +382,11 @@
           if (px > maxX) maxX = px;
           if (py < minY) minY = py;
           if (py > maxY) maxY = py;
-
           if (px > 0){     const ni=p-1; if (bin[ni] && labels[ni]===-1){ labels[ni]=label; stack[sp++]=ni; } }
           if (px < w - 1){ const ni=p+1; if (bin[ni] && labels[ni]===-1){ labels[ni]=label; stack[sp++]=ni; } }
           if (py > 0){     const ni=p-w; if (bin[ni] && labels[ni]===-1){ labels[ni]=label; stack[sp++]=ni; } }
           if (py < h - 1){ const ni=p+w; if (bin[ni] && labels[ni]===-1){ labels[ni]=label; stack[sp++]=ni; } }
         }
-
         const bw = maxX - minX + 1;
         const bh = maxY - minY + 1;
         comps.push({
@@ -449,57 +400,57 @@
     return comps;
   }
 
-  /* --- Filtrado adaptativo: filtro laxo + mediana --- */
-  function filterPips(candidates, imgW, imgH){
-    const maxDim = Math.min(imgW, imgH) * 0.35;
-
-    // Filtro laxo: solo descarta lo que claramente NO es un pip
-    const loose = candidates.filter(c => {
-      if (c.width < 2 || c.height < 2) return false;
-      if (c.width > maxDim || c.height > maxDim) return false; // región grande (tile, fondo)
+  /* --- Buscar candidatos a ficha (regiones grandes, rectangulares) --- */
+  function findTileCandidates(comps, w, h){
+    const imgArea = w * h;
+    return comps.filter(c => {
+      const aR = c.area / imgArea;
+      if (aR < 0.005 || aR > 0.55) return false; // ni muy pequeña ni toda la imagen
       const aspect = Math.max(c.width, c.height) / Math.min(c.width, c.height);
-      if (aspect > 3.5) return false;                          // demasiado alargado
-      if (c.fill < 0.35) return false;                         // muy hueco/irregular
-      if (c.fill > 0.93) return false;                         // demasiado rectangular (superficie)
-      const r = (c.width + c.height) / 4;
-      const circleArea = Math.PI * r * r;
-      if (c.area / circleArea < 0.40) return false;            // muy poco circular
+      if (aspect > 5.5) return false;            // las fichas son alargadas, no tiras
+      if (c.fill < 0.5) return false;            // debe ser sólida
       return true;
     });
-
-    if (loose.length < 3) return loose; // muy pocos para calibrar escala
-
-    // Mediana del área como referencia de "tamaño típico de pip"
-    const areas  = loose.map(c => c.area).sort((a, b) => a - b);
-    const median = areas[Math.floor(areas.length / 2)];
-    const medD   = Math.sqrt(median / Math.PI) * 2; // diámetro equivalente
-
-    const minArea = median * 0.30;
-    const maxArea = median * 4.50;
-    const minSide = Math.max(2, medD * 0.45);
-    const maxSide = medD * 3.00;
-
-    return loose.filter(c =>
-      c.area   >= minArea && c.area   <= maxArea &&
-      c.width  >= minSide && c.width  <= maxSide &&
-      c.height >= minSide && c.height <= maxSide
-    );
   }
 
-  /* --- Agrupar pips (solo para el overlay) --- */
-  const GROUP_DIST_FAC = 4.5;
+  /* --- ¿Es un pip? (dentro de una ficha) --- */
+  function isPipLike(c, w, h){
+    const minDim = Math.min(w, h);
+    if (c.area < 6) return false;
+    if (c.width < 2 || c.height < 2) return false;
+    if (c.width > minDim * 0.15 || c.height > minDim * 0.15) return false;
+    const aspect = Math.max(c.width, c.height) / Math.min(c.width, c.height);
+    if (aspect > 2.0) return false;
+    if (c.fill < 0.55) return false;
+    const r = (c.width + c.height) / 4;
+    const circleArea = Math.PI * r * r;
+    if (c.area / circleArea < 0.55) return false;
+    return true;
+  }
+
+  /* --- Filtrado adaptativo por mediana --- */
+  function filterPipsAdaptive(comps, w, h){
+    const loose = comps.filter(c => isPipLike(c, w, h));
+    if (loose.length < 3) return loose;
+    const areas  = loose.map(c => c.area).sort((a,b)=>a-b);
+    const median = areas[Math.floor(areas.length/2)];
+    return loose.filter(c => {
+      const r = c.area / median;
+      return r >= 0.30 && r <= 3.00;
+    });
+  }
+
+  /* --- Agrupar pips para dibujar (no afecta al total) --- */
   function groupPips(pips){
     if (pips.length === 0) return [];
     const areas = pips.map(p => p.area).sort((a,b)=>a-b);
-    const medianArea = areas[Math.floor(areas.length / 2)];
+    const medianArea = areas[Math.floor(areas.length/2)];
     const medianD    = Math.sqrt(medianArea / Math.PI) * 2;
-    const maxDist    = medianD * GROUP_DIST_FAC;
+    const maxDist    = medianD * 5.0;
     const maxDistSq  = maxDist * maxDist;
-
     const parent = pips.map((_, i) => i);
     const find = (i) => { while (parent[i] !== i){ parent[i] = parent[parent[i]]; i = parent[i]; } return i; };
-    const union = (a,b) => { const ra = find(a), rb = find(b); if (ra !== rb) parent[ra] = rb; };
-
+    const union = (a,b) => { const ra=find(a), rb=find(b); if (ra!==rb) parent[ra]=rb; };
     for (let i = 0; i < pips.length; i++){
       for (let j = i+1; j < pips.length; j++){
         const dx = pips[i].cx - pips[j].cx;
@@ -507,7 +458,6 @@
         if (dx*dx + dy*dy < maxDistSq) union(i, j);
       }
     }
-
     const map = new Map();
     for (let i = 0; i < pips.length; i++){
       const r = find(i);
@@ -517,54 +467,89 @@
     return Array.from(map.values());
   }
 
-  /* --- Detectar pips de una polaridad --- */
-  function detectPips(gray, w, h, polarity){
-    const thr = otsu(gray);
-    const bin = new Uint8Array(w*h);
-    if (polarity === 'dark'){
-      for (let i = 0; i < gray.length; i++) bin[i] = gray[i] < thr ? 1 : 0;
-    } else {
-      for (let i = 0; i < gray.length; i++) bin[i] = gray[i] >= thr ? 1 : 0;
-    }
-    const comps = connectedComponents(bin, w, h);
-    return filterPips(comps, w, h);
-  }
-
-  /* --- Pipeline --- */
+  /* --- Pipeline: fichas primero, pips dentro --- */
   function processFrame(srcCanvas){
     const srcW = srcCanvas.width;
     const srcH = srcCanvas.height;
     const PH   = Math.round(srcH * PROC_W / srcW);
 
     const tmp = document.createElement('canvas');
-    tmp.width  = PROC_W;
+    tmp.width = PROC_W;
     tmp.height = PH;
-    const tctx = tmp.getContext('2d', { willReadFrequently: true });
+    const tctx = tmp.getContext('2d', { willReadFrequently:true });
     tctx.drawImage(srcCanvas, 0, 0, PROC_W, PH);
 
     const imgData = tctx.getImageData(0, 0, PROC_W, PH);
-    const gray    = toGray(imgData, PROC_W, PH);
+    const gray = toGray(imgData, PROC_W, PH);
 
-    const darkPips  = detectPips(gray, PROC_W, PH, 'dark');
-    const lightPips = detectPips(gray, PROC_W, PH, 'light');
+    // Binarizar con Otsu en ambas polaridades
+    const thr = otsu(gray);
+    const darkBin  = new Uint8Array(PROC_W * PH);
+    const lightBin = new Uint8Array(PROC_W * PH);
+    for (let i = 0; i < gray.length; i++){
+      darkBin[i]  = gray[i] <  thr ? 1 : 0;
+      lightBin[i] = gray[i] >= thr ? 1 : 0;
+    }
 
-    // Elegir la polaridad con más pips
-    let chosenPips = (lightPips.length > darkPips.length) ? lightPips : darkPips;
+    const darkComps  = connectedComponents(darkBin,  PROC_W, PH);
+    const lightComps = connectedComponents(lightBin, PROC_W, PH);
 
-    // Calcular total con corrección por fusión (2 pips pegados = 1 blob grande)
+    // Buscar fichas en cada polaridad
+    const lightTiles = findTileCandidates(lightComps, PROC_W, PH);
+    const darkTiles  = findTileCandidates(darkComps,  PROC_W, PH);
+
+    // ¿Qué polaridad describe las fichas?
+    let tiles, pipSource, tilePolarity;
+    if (lightTiles.length >= darkTiles.length && lightTiles.length > 0){
+      tiles = lightTiles;  pipSource = darkComps;  tilePolarity = 'light';
+    } else if (darkTiles.length > 0){
+      tiles = darkTiles;   pipSource = lightComps; tilePolarity = 'dark';
+    } else {
+      // Fallback: no se detectaron fichas → proceso toda la imagen
+      tiles = null; tilePolarity = 'none';
+      const dPips = filterPipsAdaptive(darkComps, PROC_W, PH);
+      const lPips = filterPipsAdaptive(lightComps, PROC_W, PH);
+      pipSource = dPips.length >= lPips.length ? dPips : lPips;
+    }
+
+    // Filtrar pips: solo los que están DENTRO de una ficha detectada
+    let candidates;
+    if (tiles){
+      candidates = pipSource.filter(c => {
+        return tiles.some(t =>
+          c.cx >= t.minX && c.cx <= t.maxX &&
+          c.cy >= t.minY && c.cy <= t.maxY &&
+          c.area < t.area * 0.30
+        );
+      });
+    } else {
+      candidates = pipSource;
+    }
+
+    // Filtrado adaptativo
+    const validPips = filterPipsAdaptive(candidates, PROC_W, PH);
+
+    // Corrección por fusión: un blob 2× la mediana = 2 pips pegados
     let total = 0;
-    if (chosenPips.length > 0){
-      const areas  = chosenPips.map(p => p.area).sort((a,b)=>a-b);
-      const median = areas[Math.floor(areas.length / 2)];
-      for (const p of chosenPips){
+    if (validPips.length > 0){
+      const areas  = validPips.map(p => p.area).sort((a,b)=>a-b);
+      const median = areas[Math.floor(areas.length/2)];
+      for (const p of validPips){
         total += Math.max(1, Math.round(p.area / median));
       }
     }
 
-    // Escalar coordenadas a la resolución original
+    // Escalar coordenadas a la resolución del canvas de captura
     const sx = srcW / PROC_W;
     const sy = srcH / PH;
-    for (const p of chosenPips){
+
+    const scaledTiles = tiles ? tiles.map(t => ({
+      minX: t.minX * sx, maxX: t.maxX * sx,
+      minY: t.minY * sy, maxY: t.maxY * sy,
+      area: t.area * sx * sy
+    })) : [];
+
+    for (const p of validPips){
       p.cx *= sx; p.cy *= sy;
       p.minX *= sx; p.maxX *= sx;
       p.minY *= sy; p.maxY *= sy;
@@ -572,9 +557,9 @@
       p.area *= sx * sy;
     }
 
-    const chosenGroups = groupPips(chosenPips);
+    const groups = groupPips(validPips);
 
-    return { pips: chosenPips, groups: chosenGroups, total };
+    return { pips: validPips, groups, total, tiles: scaledTiles, tilePolarity };
   }
 
   /* ============ Modal cámara ============ */
@@ -610,10 +595,9 @@
       }
       resetUI();
       modal.hidden = false;
-
       try{
         stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } },
+          video: { facingMode:{ ideal:'environment' }, width:{ ideal:1920 }, height:{ ideal:1080 } },
           audio: false
         });
       } catch(err){
@@ -621,7 +605,6 @@
         alert('No se pudo acceder a la cámara:\n' + (err.message || err.name));
         return;
       }
-
       video.srcObject = stream;
       try{ await video.play(); } catch(e){}
     }
@@ -642,7 +625,7 @@
 
       canvas.width = vw;
       canvas.height = vh;
-      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      const ctx = canvas.getContext('2d', { willReadFrequently:true });
       ctx.drawImage(video, 0, 0, vw, vh);
 
       let res;
@@ -653,17 +636,19 @@
         return;
       }
       result = res;
-
       drawOverlay(ctx, res);
 
       video.hidden = true;
       canvas.hidden = false;
 
-      const n = res.groups.length;
+      const tilesN = res.tiles.length;
       const t = res.total;
 
       if (t === 0){
-        infoEl.innerHTML = 'No se detectaron puntos.<br>Prueba con más contraste, mejor luz y las fichas separadas.';
+        let msg = 'No se detectaron puntos.<br>';
+        if (tilesN === 0) msg += 'No se ve ninguna ficha clara. Acércala o mejora el contraste.';
+        else msg += 'Se ven ' + tilesN + ' ficha(s) pero sin pips legibles. Acércate o enfoca mejor.';
+        infoEl.innerHTML = msg;
         btnCapture.hidden = true;
         btnRetry.hidden = false;
         btnAddA.hidden = true;
@@ -671,8 +656,8 @@
       } else {
         infoEl.innerHTML =
           `Suma total: <strong style="color:#7bb4ff;font-size:1.15em">${t}</strong> pips · ` +
-          `aprox. <strong>${n}</strong> ficha(s)<br>` +
-          `<span style="font-size:12px;opacity:.7">Revisa los círculos azules antes de añadir.</span>`;
+          `<strong>${tilesN}</strong> ficha(s) detectada(s)<br>` +
+          `<span style="font-size:12px;opacity:.7">Verde = ficha · Azul = pip · revisa antes de añadir.</span>`;
         btnCapture.hidden = true;
         btnRetry.hidden = false;
         btnAddA.hidden = false;
@@ -681,18 +666,37 @@
     }
 
     function drawOverlay(ctx, res){
+      const W = ctx.canvas.width;
+      const baseLW = Math.max(2, Math.round(W / 500));
+
+      // 1) Fichas detectadas: recuadro verde
       ctx.save();
+      ctx.strokeStyle = 'rgba(80,220,120,.9)';
+      ctx.lineWidth = baseLW * 1.4;
+      ctx.setLineDash([baseLW*5, baseLW*3]);
+      for (const t of res.tiles){
+        ctx.strokeRect(t.minX, t.minY, t.maxX - t.minX, t.maxY - t.minY);
+      }
+      ctx.setLineDash([]);
+      ctx.restore();
+
+      // 2) Pips: círculos azules
+      ctx.save();
+      ctx.strokeStyle = 'rgba(90,162,255,.95)';
+      ctx.lineWidth = baseLW;
       for (const p of res.pips){
         const r = Math.max(p.width, p.height) * 0.72;
         ctx.beginPath();
-        ctx.arc(p.cx, p.cy, r, 0, Math.PI * 2);
-        ctx.strokeStyle = 'rgba(90,162,255,.95)';
-        ctx.lineWidth = Math.max(2, Math.round(ctx.canvas.width / 400));
+        ctx.arc(p.cx, p.cy, r, 0, Math.PI*2);
         ctx.stroke();
       }
+      ctx.restore();
 
-      ctx.font = 'bold ' + Math.max(18, Math.round(ctx.canvas.width / 40)) + 'px sans-serif';
+      // 3) Recuadro amarillo + número por grupo/ficha
+      ctx.save();
+      ctx.font = 'bold ' + Math.max(16, Math.round(W/50)) + 'px sans-serif';
       ctx.textBaseline = 'bottom';
+      const pad = Math.max(6, Math.round(W/130));
       for (const g of res.groups){
         let minX=Infinity, minY=Infinity, maxX=-Infinity, maxY=-Infinity;
         for (const p of g){
@@ -701,24 +705,22 @@
           if (p.maxX > maxX) maxX = p.maxX;
           if (p.maxY > maxY) maxY = p.maxY;
         }
-        const pad = Math.max(8, Math.round(ctx.canvas.width / 100));
         ctx.strokeStyle = 'rgba(255,200,80,.95)';
-        ctx.lineWidth = Math.max(2, Math.round(ctx.canvas.width / 400));
-        ctx.strokeRect(minX - pad, minY - pad, (maxX - minX) + pad*2, (maxY - minY) + pad*2);
+        ctx.lineWidth = baseLW;
+        ctx.strokeRect(minX-pad, minY-pad, (maxX-minX)+pad*2, (maxY-minY)+pad*2);
 
         const label = String(g.length);
-        ctx.fillStyle = 'rgba(0,0,0,.6)';
         const tw = ctx.measureText(label).width;
-        const th = parseInt(ctx.font, 10) || 20;
-        ctx.fillRect(minX - pad, minY - pad - th - 6, tw + 12, th + 6);
+        const th = parseInt(ctx.font, 10) || 18;
+        ctx.fillStyle = 'rgba(0,0,0,.65)';
+        ctx.fillRect(minX-pad, minY-pad-th-6, tw+12, th+6);
         ctx.fillStyle = 'rgba(255,200,80,1)';
-        ctx.fillText(label, minX - pad + 6, minY - pad - 4);
+        ctx.fillText(label, minX-pad+6, minY-pad-4);
       }
       ctx.restore();
     }
 
     function retry(){ resetUI(); }
-
     function addTo(column){
       if (!result || !column) return;
       column.addValue(result.total);
@@ -743,7 +745,6 @@
   if (saved && (typeof saved.threshold === 'string' || typeof saved.threshold === 'number')){
     thresholdEl.value = String(saved.threshold);
   }
-
   colA = new Column(document.getElementById('col_a'), updateColors, saved ? saved.colA : null);
   colB = new Column(document.getElementById('col_b'), updateColors, saved ? saved.colB : null);
 
@@ -756,4 +757,4 @@
 })();
 </script>
 </body>
-  </html>
+</html>
