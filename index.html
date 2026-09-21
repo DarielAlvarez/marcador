@@ -76,6 +76,7 @@
   .controls button:active{ transform:translateY(1px); }
   #scan{ background:rgba(90,162,255,.18); border-color:rgba(90,162,255,.45); color:#cfe2ff; }
   #scan:hover{ background:rgba(90,162,255,.3); border-color:rgba(90,162,255,.7); }
+  #scan:disabled{ opacity:.5; cursor:wait; }
 
   .modal{ position:fixed; inset:0; background:rgba(0,0,0,.85); backdrop-filter:blur(4px);
     display:flex; align-items:center; justify-content:center; z-index:100; padding:16px; }
@@ -112,6 +113,7 @@
     .header .hint{ display:none; }
   }
 </style>
+<script async src="https://docs.opencv.org/4.9.0/opencv.js"></script>
 </head>
 <body>
 
@@ -172,38 +174,26 @@
   /* ============ Persistencia ============ */
   const STORAGE_KEY = 'marcador_state_v1';
   function readStorage(){
-    try{
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return null;
-      const data = JSON.parse(raw);
-      if (!data || typeof data !== 'object') return null;
-      return data;
+    try{ const raw = localStorage.getItem(STORAGE_KEY); if(!raw) return null;
+      const d = JSON.parse(raw); return (d && typeof d === 'object') ? d : null;
     } catch(e){ return null; }
   }
-  function writeStorage(state){
-    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e){}
-  }
+  function writeStorage(s){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); } catch(e){} }
 
   /* ============ Numéricas ============ */
   const FLOAT_RE = /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/;
-  function isValidFloat(s){ return FLOAT_RE.test(s); }
-  function toFloat(s){
-    const t = String(s ?? '').trim();
-    if (!isValidFloat(t)) return 0;
-    const v = parseFloat(t);
-    return Number.isFinite(v) ? v : 0;
-  }
-  function formatNumber(n){
+  const isValidFloat = s => FLOAT_RE.test(s);
+  const toFloat = s => { const t=String(s??'').trim(); return isValidFloat(t) ? (parseFloat(t)||0) : 0; };
+  const formatNumber = n => {
     if (!Number.isFinite(n)) return '0';
     if (Number.isInteger(n)) return String(n);
     return String(Number(n.toFixed(10)));
-  }
+  };
 
   /* ============ Columna ============ */
   class Column {
     constructor(root, onSumChanged, initial = null){
-      this.root = root;
-      this.onSumChanged = onSumChanged;
+      this.root = root; this.onSumChanged = onSumChanged;
       this.rowsEl = root.querySelector('.rows');
       this.nameEl = root.querySelector('.name-edit');
       this.sumEl  = root.querySelector('.sum-value');
@@ -212,8 +202,8 @@
         if (typeof initial.name === 'string') this.nameEl.value = initial.name;
         const rows = Array.isArray(initial.rows) ? initial.rows : [];
         if (rows.length > 0){ for (const v of rows) this.addRow(v ?? '', false); }
-        else { this.addRow('', false); }
-      } else { this.addRow('', false); }
+        else this.addRow('', false);
+      } else this.addRow('', false);
       this.nameEl.addEventListener('input', () => { if (this.onSumChanged) this.onSumChanged(); });
       this.updateSum();
     }
@@ -223,9 +213,7 @@
       input.spellcheck=false; input.placeholder='0'; input.className='row-input'; input.value=value;
       input.addEventListener('input',  () => this.handleInput(input, false));
       input.addEventListener('blur',   () => this.handleInput(input, true));
-      input.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter'){ e.preventDefault(); this.handleInput(input, true); }
-      });
+      input.addEventListener('keydown', e => { if (e.key==='Enter'){ e.preventDefault(); this.handleInput(input, true); }});
       this.rowsEl.appendChild(input);
       if (focus && value === '') input.focus();
       return input;
@@ -240,7 +228,7 @@
         const next = input.nextElementSibling;
         if (next && this.isEmpty(next)){ next.remove(); this.updateSum(); return; }
       }
-      if (isNum && !isZero && this.rowsEl.lastElementChild === input){ this.addRow('', addFocus); }
+      if (isNum && !isZero && this.rowsEl.lastElementChild === input) this.addRow('', addFocus);
     }
     updateSum(){
       let total = 0;
@@ -263,7 +251,7 @@
       this.updateSum();
     }
     resetRows(){
-      while (this.rowsEl.children.length > 1){ this.rowsEl.removeChild(this.rowsEl.lastElementChild); }
+      while (this.rowsEl.children.length > 1) this.rowsEl.removeChild(this.rowsEl.lastElementChild);
       const first = this.rowsEl.firstElementChild;
       if (first) first.value = '';
       this.updateSum();
@@ -279,10 +267,10 @@
   const resetBtn    = document.getElementById('reset');
   const scanBtn     = document.getElementById('scan');
 
-  function setState(el, state){
-    el.classList.remove('normal','red','green');
-    el.classList.add(state);
-  }
+  const setState = (el, state) => {
+    el.classList.remove('normal','red','green'); el.classList.add(state);
+  };
+
   function persist(){
     if (loading) return;
     writeStorage({
@@ -291,175 +279,67 @@
       colB: { name: colB.getName(), rows: colB.getRowValues() }
     });
   }
+
   function updateColors(){
     if (!colA || !colB) return;
-    const threshold = toFloat(thresholdEl.value);
-    const sumA = colA.getSum();
-    const sumB = colB.getSum();
-    const aAbove = sumA >= threshold;
-    const bAbove = sumB >= threshold;
-    let stateA='normal', stateB='normal';
-    if (aAbove && !bAbove){ stateA='green'; stateB='red'; }
-    else if (bAbove && !aAbove){ stateA='red'; stateB='green'; }
-    else if (aAbove && bAbove){ stateA='red'; stateB='red'; }
-    setState(colA.root, stateA);
-    setState(colB.root, stateB);
+    const th = toFloat(thresholdEl.value);
+    const sA = colA.getSum(), sB = colB.getSum();
+    const aA = sA >= th, aB = sB >= th;
+    let stA='normal', stB='normal';
+    if (aA && !aB){ stA='green'; stB='red'; }
+    else if (aB && !aA){ stA='red'; stB='green'; }
+    else if (aA && aB){ stA='red'; stB='red'; }
+    setState(colA.root, stA);
+    setState(colB.root, stB);
     persist();
   }
 
   /* =========================================================
-     ============  VISIÓN (ficha primero)  =================
+     ============  VISIÓN con OpenCV.js  ====================
      ========================================================= */
 
-  const PROC_W = 800;   // ancho de trabajo (más alto = mejor para fichas lejanas)
+  const PROC_W = 900;               // ancho de trabajo
+  const PIN_RADIUS = 0.14;          // rechaza pips a <14% del centro (pin)
+  const TILE_MIN_AREA = 0.002;      // 0.2% de la imagen
+  const TILE_MAX_AREA = 0.20;       // 20% de la imagen
+  const TILE_MAX_ASPECT = 4.5;
+  const TILE_MIN_FILL = 0.60;       // debe ser sólido (rectangular)
 
-  /* --- Grayscale + blur 3x3 --- */
-  function toGray(imgData, w, h){
-    const gray = new Uint8Array(w * h);
-    const d = imgData.data;
-    for (let i = 0, n = w * h; i < n; i++){
-      gray[i] = (d[i*4]*0.299 + d[i*4+1]*0.587 + d[i*4+2]*0.114) | 0;
-    }
-    const out = new Uint8Array(w * h);
-    for (let y = 0; y < h; y++){
-      for (let x = 0; x < w; x++){
-        let s = 0, c = 0;
-        const y0 = Math.max(0, y-1), y1 = Math.min(h-1, y+1);
-        const x0 = Math.max(0, x-1), x1 = Math.min(w-1, x+1);
-        for (let ny = y0; ny <= y1; ny++){
-          for (let nx = x0; nx <= x1; nx++){
-            s += gray[ny*w + nx]; c++;
-          }
+  let cvReady = false;
+  function waitForCv(timeoutMs = 25000){
+    return new Promise((resolve, reject) => {
+      const t0 = Date.now();
+      const check = () => {
+        if (typeof cv !== 'undefined'){
+          if (cv.Mat){ resolve(); return; }
+          if (typeof cv.then === 'function'){ cv.then(() => resolve()); return; }
+          cv['onRuntimeInitialized'] = () => resolve();
         }
-        out[y*w + x] = (s / c) | 0;
-      }
-    }
-    return out;
-  }
-
-  /* --- Otsu --- */
-  function otsu(gray){
-    const hist = new Uint32Array(256);
-    for (let i = 0; i < gray.length; i++) hist[gray[i]]++;
-    const total = gray.length;
-    let sum = 0;
-    for (let i = 0; i < 256; i++) sum += i * hist[i];
-    let sumB = 0, wB = 0, max = -1, thr = 128;
-    for (let t = 0; t < 256; t++){
-      wB += hist[t];
-      if (wB === 0) continue;
-      const wF = total - wB;
-      if (wF === 0) break;
-      sumB += t * hist[t];
-      const mB = sumB / wB;
-      const mF = (sum - sumB) / wF;
-      const b = wB * wF * (mB - mF) * (mB - mF);
-      if (b > max){ max = b; thr = t; }
-    }
-    return thr;
-  }
-
-  /* --- Componentes conexas 4-vecinos --- */
-  function connectedComponents(bin, w, h){
-    const labels = new Int32Array(w*h).fill(-1);
-    const stack  = new Int32Array(w*h);
-    const comps  = [];
-    for (let y = 0; y < h; y++){
-      for (let x = 0; x < w; x++){
-        const idx = y*w + x;
-        if (!bin[idx] || labels[idx] !== -1) continue;
-        const label = comps.length;
-        let sp = 0;
-        stack[sp++] = idx;
-        labels[idx] = label;
-        let area = 0, minX = x, maxX = x, minY = y, maxY = y, sumX = 0, sumY = 0;
-        while (sp > 0){
-          const p = stack[--sp];
-          const py = (p / w) | 0;
-          const px = p - py*w;
-          area++; sumX += px; sumY += py;
-          if (px < minX) minX = px;
-          if (px > maxX) maxX = px;
-          if (py < minY) minY = py;
-          if (py > maxY) maxY = py;
-          if (px > 0){     const ni=p-1; if (bin[ni] && labels[ni]===-1){ labels[ni]=label; stack[sp++]=ni; } }
-          if (px < w - 1){ const ni=p+1; if (bin[ni] && labels[ni]===-1){ labels[ni]=label; stack[sp++]=ni; } }
-          if (py > 0){     const ni=p-w; if (bin[ni] && labels[ni]===-1){ labels[ni]=label; stack[sp++]=ni; } }
-          if (py < h - 1){ const ni=p+w; if (bin[ni] && labels[ni]===-1){ labels[ni]=label; stack[sp++]=ni; } }
-        }
-        const bw = maxX - minX + 1;
-        const bh = maxY - minY + 1;
-        comps.push({
-          label, area, minX, maxX, minY, maxY,
-          width: bw, height: bh,
-          cx: sumX/area, cy: sumY/area,
-          fill: area / (bw * bh)
-        });
-      }
-    }
-    return comps;
-  }
-
-  /* --- Buscar candidatos a ficha (regiones grandes, rectangulares) --- */
-  function findTileCandidates(comps, w, h){
-    const imgArea = w * h;
-    return comps.filter(c => {
-      const aR = c.area / imgArea;
-      if (aR < 0.005 || aR > 0.55) return false; // ni muy pequeña ni toda la imagen
-      const aspect = Math.max(c.width, c.height) / Math.min(c.width, c.height);
-      if (aspect > 5.5) return false;            // las fichas son alargadas, no tiras
-      if (c.fill < 0.5) return false;            // debe ser sólida
-      return true;
+        if (Date.now() - t0 > timeoutMs) reject(new Error('OpenCV no cargó'));
+        else setTimeout(check, 120);
+      };
+      check();
     });
   }
 
-  /* --- ¿Es un pip? (dentro de una ficha) --- */
-  function isPipLike(c, w, h){
-    const minDim = Math.min(w, h);
-    if (c.area < 6) return false;
-    if (c.width < 2 || c.height < 2) return false;
-    if (c.width > minDim * 0.15 || c.height > minDim * 0.15) return false;
-    const aspect = Math.max(c.width, c.height) / Math.min(c.width, c.height);
-    if (aspect > 2.0) return false;
-    if (c.fill < 0.55) return false;
-    const r = (c.width + c.height) / 4;
-    const circleArea = Math.PI * r * r;
-    if (c.area / circleArea < 0.55) return false;
-    return true;
-  }
-
-  /* --- Filtrado adaptativo por mediana --- */
-  function filterPipsAdaptive(comps, w, h){
-    const loose = comps.filter(c => isPipLike(c, w, h));
-    if (loose.length < 3) return loose;
-    const areas  = loose.map(c => c.area).sort((a,b)=>a-b);
-    const median = areas[Math.floor(areas.length/2)];
-    return loose.filter(c => {
-      const r = c.area / median;
-      return r >= 0.30 && r <= 3.00;
-    });
-  }
-
-  /* --- Agrupar pips para dibujar (no afecta al total) --- */
+  /* ---------- Agrupar pips para el overlay ---------- */
   function groupPips(pips){
     if (pips.length === 0) return [];
     const areas = pips.map(p => p.area).sort((a,b)=>a-b);
-    const medianArea = areas[Math.floor(areas.length/2)];
-    const medianD    = Math.sqrt(medianArea / Math.PI) * 2;
-    const maxDist    = medianD * 5.0;
-    const maxDistSq  = maxDist * maxDist;
+    const med = areas[Math.floor(areas.length/2)];
+    const medD = Math.sqrt(med / Math.PI) * 2;
+    const maxD = medD * 5.5, maxD2 = maxD * maxD;
     const parent = pips.map((_, i) => i);
-    const find = (i) => { while (parent[i] !== i){ parent[i] = parent[parent[i]]; i = parent[i]; } return i; };
+    const find = i => { while (parent[i] !== i){ parent[i] = parent[parent[i]]; i = parent[i]; } return i; };
     const union = (a,b) => { const ra=find(a), rb=find(b); if (ra!==rb) parent[ra]=rb; };
-    for (let i = 0; i < pips.length; i++){
-      for (let j = i+1; j < pips.length; j++){
-        const dx = pips[i].cx - pips[j].cx;
-        const dy = pips[i].cy - pips[j].cy;
-        if (dx*dx + dy*dy < maxDistSq) union(i, j);
+    for (let i=0; i<pips.length; i++){
+      for (let j=i+1; j<pips.length; j++){
+        const dx=pips[i].cx-pips[j].cx, dy=pips[i].cy-pips[j].cy;
+        if (dx*dx+dy*dy < maxD2) union(i,j);
       }
     }
     const map = new Map();
-    for (let i = 0; i < pips.length; i++){
+    for (let i=0; i<pips.length; i++){
       const r = find(i);
       if (!map.has(r)) map.set(r, []);
       map.get(r).push(pips[i]);
@@ -467,89 +347,135 @@
     return Array.from(map.values());
   }
 
-  /* --- Pipeline: fichas primero, pips dentro --- */
+  /* ---------- Pipeline OpenCV ---------- */
   function processFrame(srcCanvas){
-    const srcW = srcCanvas.width;
-    const srcH = srcCanvas.height;
-    const PH   = Math.round(srcH * PROC_W / srcW);
+    const src = cv.imread(srcCanvas);
+    const srcW = src.cols, srcH = src.rows;
+    const PH = Math.round(srcH * PROC_W / srcW);
 
-    const tmp = document.createElement('canvas');
-    tmp.width = PROC_W;
-    tmp.height = PH;
-    const tctx = tmp.getContext('2d', { willReadFrequently:true });
-    tctx.drawImage(srcCanvas, 0, 0, PROC_W, PH);
+    // 1) Escalar
+    const resized = new cv.Mat();
+    cv.resize(src, resized, new cv.Size(PROC_W, PH), 0, 0, cv.INTER_AREA);
 
-    const imgData = tctx.getImageData(0, 0, PROC_W, PH);
-    const gray = toGray(imgData, PROC_W, PH);
+    // 2) Gris
+    const gray = new cv.Mat();
+    cv.cvtColor(resized, gray, cv.COLOR_RGBA2GRAY);
 
-    // Binarizar con Otsu en ambas polaridades
-    const thr = otsu(gray);
-    const darkBin  = new Uint8Array(PROC_W * PH);
-    const lightBin = new Uint8Array(PROC_W * PH);
-    for (let i = 0; i < gray.length; i++){
-      darkBin[i]  = gray[i] <  thr ? 1 : 0;
-      lightBin[i] = gray[i] >= thr ? 1 : 0;
+    // 3) Blur suave
+    const blurred = new cv.Mat();
+    cv.GaussianBlur(gray, blurred, new cv.Size(3,3), 0);
+
+    // 4) Umbral adaptativo para zonas CLARAS (fichas blancas)
+    //    Bloque 51 (grande) para suavizar la iluminación general
+    //    C = -15 → el píxel debe ser 15 unidades más claro que su entorno
+    const lightBin = new cv.Mat();
+    cv.adaptiveThreshold(blurred, lightBin, 255,
+      cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY, 51, -15);
+
+    // 5) Limpieza morfológica
+    const k3 = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(3,3));
+    cv.morphologyEx(lightBin, lightBin, cv.MORPH_OPEN, k3);
+    cv.morphologyEx(lightBin, lightBin, cv.MORPH_CLOSE, k3);
+
+    // 6) Contornos de posibles fichas
+    const contours = new cv.MatVector();
+    const hier = new cv.Mat();
+    cv.findContours(lightBin, contours, hier, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+
+    const imgArea = PROC_W * PH;
+    const tiles = [];
+    for (let i = 0; i < contours.size(); i++){
+      const cnt = contours.get(i);
+      const area = cv.contourArea(cnt);
+      const rel = area / imgArea;
+      if (rel < TILE_MIN_AREA || rel > TILE_MAX_AREA){ cnt.delete(); continue; }
+      const rect = cv.boundingRect(cnt);
+      const aspect = Math.max(rect.width, rect.height) / Math.min(rect.width, rect.height);
+      if (aspect > TILE_MAX_ASPECT){ cnt.delete(); continue; }
+      if (area / (rect.width * rect.height) < TILE_MIN_FILL){ cnt.delete(); continue; }
+      tiles.push({ rect });
+      cnt.delete();
     }
 
-    const darkComps  = connectedComponents(darkBin,  PROC_W, PH);
-    const lightComps = connectedComponents(lightBin, PROC_W, PH);
+    // 7) Buscar pips DENTRO de cada ficha
+    const allPips = [];
+    for (const tile of tiles){
+      const r = tile.rect;
+      const roi = blurred.roi(r);   // vista del ROI (no copia)
 
-    // Buscar fichas en cada polaridad
-    const lightTiles = findTileCandidates(lightComps, PROC_W, PH);
-    const darkTiles  = findTileCandidates(darkComps,  PROC_W, PH);
+      // Umbral adaptativo para zonas OSCURAS (pips negros) dentro de la ficha
+      const darkBin = new cv.Mat();
+      cv.adaptiveThreshold(roi, darkBin, 255,
+        cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV, 15, 8);
+      cv.morphologyEx(darkBin, darkBin, cv.MORPH_OPEN, k3);
 
-    // ¿Qué polaridad describe las fichas?
-    let tiles, pipSource, tilePolarity;
-    if (lightTiles.length >= darkTiles.length && lightTiles.length > 0){
-      tiles = lightTiles;  pipSource = darkComps;  tilePolarity = 'light';
-    } else if (darkTiles.length > 0){
-      tiles = darkTiles;   pipSource = lightComps; tilePolarity = 'dark';
-    } else {
-      // Fallback: no se detectaron fichas → proceso toda la imagen
-      tiles = null; tilePolarity = 'none';
-      const dPips = filterPipsAdaptive(darkComps, PROC_W, PH);
-      const lPips = filterPipsAdaptive(lightComps, PROC_W, PH);
-      pipSource = dPips.length >= lPips.length ? dPips : lPips;
-    }
+      const pipContours = new cv.MatVector();
+      const pipHier = new cv.Mat();
+      cv.findContours(darkBin, pipContours, pipHier, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
 
-    // Filtrar pips: solo los que están DENTRO de una ficha detectada
-    let candidates;
-    if (tiles){
-      candidates = pipSource.filter(c => {
-        return tiles.some(t =>
-          c.cx >= t.minX && c.cx <= t.maxX &&
-          c.cy >= t.minY && c.cy <= t.maxY &&
-          c.area < t.area * 0.30
-        );
-      });
-    } else {
-      candidates = pipSource;
-    }
+      const tileArea = r.width * r.height;
+      const tileCx = r.width / 2, tileCy = r.height / 2;
+      const cands = [];
 
-    // Filtrado adaptativo
-    const validPips = filterPipsAdaptive(candidates, PROC_W, PH);
+      for (let j = 0; j < pipContours.size(); j++){
+        const p = pipContours.get(j);
+        const pArea = cv.contourArea(p);
+        const pRect = cv.boundingRect(p);
 
-    // Corrección por fusión: un blob 2× la mediana = 2 pips pegados
-    let total = 0;
-    if (validPips.length > 0){
-      const areas  = validPips.map(p => p.area).sort((a,b)=>a-b);
-      const median = areas[Math.floor(areas.length/2)];
-      for (const p of validPips){
-        total += Math.max(1, Math.round(p.area / median));
+        // Filtro por área relativa dentro de la ficha
+        const rel = pArea / tileArea;
+        if (rel < 0.0015 || rel > 0.045){ p.delete(); continue; }
+        if (pRect.width < 2 || pRect.height < 2){ p.delete(); continue; }
+
+        // Circularidad: pips son círculos
+        const pAspect = Math.max(pRect.width, pRect.height) / Math.min(pRect.width, pRect.height);
+        if (pAspect > 2.2){ p.delete(); continue; }
+
+        const rEq = (pRect.width + pRect.height) / 4;
+        const circularity = pArea / (Math.PI * rEq * rEq);
+        if (circularity < 0.50){ p.delete(); continue; }
+
+        // Rechazo del PIN: cualquier blob cerca del centro geométrico de la ficha
+        const pcx = pRect.x + pRect.width / 2;
+        const pcy = pRect.y + pRect.height / 2;
+        const dx = (pcx - tileCx) / r.width;
+        const dy = (pcy - tileCy) / r.height;
+        if (Math.sqrt(dx*dx + dy*dy) < PIN_RADIUS){ p.delete(); continue; }
+
+        cands.push({
+          cx: pcx + r.x, cy: pcy + r.y,
+          minX: pRect.x + r.x, minY: pRect.y + r.y,
+          maxX: pRect.x + r.x + pRect.width,
+          maxY: pRect.y + r.y + pRect.height,
+          width: pRect.width, height: pRect.height,
+          area: pArea
+        });
+        p.delete();
       }
+
+      // Filtrado por mediana dentro de esta ficha
+      if (cands.length >= 3){
+        const areas = cands.map(c => c.area).sort((a,b)=>a-b);
+        const med = areas[Math.floor(areas.length/2)];
+        for (const c of cands){
+          if (c.area >= med*0.35 && c.area <= med*2.8) allPips.push(c);
+        }
+      } else {
+        for (const c of cands) allPips.push(c);
+      }
+
+      // Limpieza
+      roi.delete(); darkBin.delete();
+      pipContours.delete(); pipHier.delete();
     }
 
-    // Escalar coordenadas a la resolución del canvas de captura
-    const sx = srcW / PROC_W;
-    const sy = srcH / PH;
+    // Limpieza
+    src.delete(); resized.delete(); gray.delete(); blurred.delete();
+    lightBin.delete(); k3.delete(); contours.delete(); hier.delete();
 
-    const scaledTiles = tiles ? tiles.map(t => ({
-      minX: t.minX * sx, maxX: t.maxX * sx,
-      minY: t.minY * sy, maxY: t.maxY * sy,
-      area: t.area * sx * sy
-    })) : [];
-
-    for (const p of validPips){
+    // 8) Escalar coordenadas de vuelta a resolución original
+    const sx = srcW / PROC_W, sy = srcH / PH;
+    for (const p of allPips){
       p.cx *= sx; p.cy *= sy;
       p.minX *= sx; p.maxX *= sx;
       p.minY *= sy; p.maxY *= sy;
@@ -557,9 +483,25 @@
       p.area *= sx * sy;
     }
 
-    const groups = groupPips(validPips);
+    // 9) Total con corrección por fusión
+    let total = 0;
+    if (allPips.length > 0){
+      const areas = allPips.map(p => p.area).sort((a,b)=>a-b);
+      const med = areas[Math.floor(areas.length/2)];
+      for (const p of allPips) total += Math.max(1, Math.round(p.area / med));
+    }
 
-    return { pips: validPips, groups, total, tiles: scaledTiles, tilePolarity };
+    const groups = groupPips(allPips);
+
+    return {
+      pips: allPips,
+      groups,
+      total,
+      tiles: tiles.map(t => ({
+        minX: t.rect.x * sx, maxX: (t.rect.x + t.rect.width) * sx,
+        minY: t.rect.y * sy, maxY: (t.rect.y + t.rect.height) * sy
+      }))
+    };
   }
 
   /* ============ Modal cámara ============ */
@@ -578,26 +520,25 @@
 
     function resetUI(){
       result = null;
-      video.hidden = false;
-      canvas.hidden = true;
+      video.hidden = false; canvas.hidden = true;
       infoEl.innerHTML = 'Apunta la cámara a las fichas y pulsa «Capturar y contar».<br>Consejo: fondo contrastante, luz uniforme, fichas separadas.';
-      btnCapture.hidden = false;
-      btnCapture.disabled = false;
-      btnRetry.hidden = true;
-      btnAddA.hidden = true;
-      btnAddB.hidden = true;
+      btnCapture.hidden = false; btnCapture.disabled = false;
+      btnRetry.hidden = true; btnAddA.hidden = true; btnAddB.hidden = true;
     }
 
     async function open(){
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
-        alert('Tu navegador no soporta acceso a la cámara (getUserMedia).');
+        alert('Tu navegador no soporta acceso a la cámara.');
         return;
       }
       resetUI();
       modal.hidden = false;
+      infoEl.innerHTML = 'Iniciando cámara…';
+
       try{
         stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode:{ ideal:'environment' }, width:{ ideal:1920 }, height:{ ideal:1080 } },
+          video: { facingMode:{ ideal:'environment' },
+                   width:{ ideal:1920 }, height:{ ideal:1080 } },
           audio: false
         });
       } catch(err){
@@ -607,6 +548,19 @@
       }
       video.srcObject = stream;
       try{ await video.play(); } catch(e){}
+
+      // Cargar OpenCV
+      if (!cvReady){
+        infoEl.innerHTML = 'Cargando OpenCV… <em>(solo la primera vez, ~8 MB)</em>';
+        try{
+          await waitForCv();
+          cvReady = true;
+          infoEl.innerHTML = 'Apunta la cámara a las fichas y pulsa «Capturar y contar».';
+        } catch(err){
+          infoEl.innerHTML = 'Error cargando OpenCV: ' + err.message + '<br>Comprueba tu conexión (solo hace falta la primera vez).';
+          return;
+        }
+      }
     }
 
     function close(){
@@ -616,52 +570,39 @@
     }
 
     function capture(){
-      const vw = video.videoWidth;
-      const vh = video.videoHeight;
-      if (!vw || !vh){
-        infoEl.textContent = 'La cámara aún no está lista. Espera un segundo y reintenta.';
-        return;
-      }
+      const vw = video.videoWidth, vh = video.videoHeight;
+      if (!vw || !vh){ infoEl.textContent = 'La cámara aún no está lista.'; return; }
 
-      canvas.width = vw;
-      canvas.height = vh;
-      const ctx = canvas.getContext('2d', { willReadFrequently:true });
+      canvas.width = vw; canvas.height = vh;
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
       ctx.drawImage(video, 0, 0, vw, vh);
 
       let res;
       try{ res = processFrame(canvas); }
-      catch(e){
-        console.error(e);
-        infoEl.textContent = 'Error procesando la imagen: ' + e.message;
-        return;
-      }
+      catch(e){ console.error(e); infoEl.textContent = 'Error: ' + e.message; return; }
+
       result = res;
       drawOverlay(ctx, res);
 
-      video.hidden = true;
-      canvas.hidden = false;
+      video.hidden = true; canvas.hidden = false;
 
       const tilesN = res.tiles.length;
       const t = res.total;
 
       if (t === 0){
         let msg = 'No se detectaron puntos.<br>';
-        if (tilesN === 0) msg += 'No se ve ninguna ficha clara. Acércala o mejora el contraste.';
+        if (tilesN === 0) msg += 'No se ve ninguna ficha. Acércala o mejora el contraste (mesa oscura mate ayuda).';
         else msg += 'Se ven ' + tilesN + ' ficha(s) pero sin pips legibles. Acércate o enfoca mejor.';
         infoEl.innerHTML = msg;
-        btnCapture.hidden = true;
-        btnRetry.hidden = false;
-        btnAddA.hidden = true;
-        btnAddB.hidden = true;
+        btnCapture.hidden = true; btnRetry.hidden = false;
+        btnAddA.hidden = true; btnAddB.hidden = true;
       } else {
         infoEl.innerHTML =
-          `Suma total: <strong style="color:#7bb4ff;font-size:1.15em">${t}</strong> pips · ` +
-          `<strong>${tilesN}</strong> ficha(s) detectada(s)<br>` +
-          `<span style="font-size:12px;opacity:.7">Verde = ficha · Azul = pip · revisa antes de añadir.</span>`;
-        btnCapture.hidden = true;
-        btnRetry.hidden = false;
-        btnAddA.hidden = false;
-        btnAddB.hidden = false;
+          `Suma: <strong style="color:#7bb4ff;font-size:1.15em">${t}</strong> pips · ` +
+          `<strong>${tilesN}</strong> ficha(s) · ` +
+          `<span style="font-size:12px;opacity:.7">Verde=ficha · Azul=pip</span>`;
+        btnCapture.hidden = true; btnRetry.hidden = false;
+        btnAddA.hidden = false; btnAddB.hidden = false;
       }
     }
 
@@ -669,7 +610,7 @@
       const W = ctx.canvas.width;
       const baseLW = Math.max(2, Math.round(W / 500));
 
-      // 1) Fichas detectadas: recuadro verde
+      // Fichas detectadas: recuadro verde discontinuo
       ctx.save();
       ctx.strokeStyle = 'rgba(80,220,120,.9)';
       ctx.lineWidth = baseLW * 1.4;
@@ -680,19 +621,17 @@
       ctx.setLineDash([]);
       ctx.restore();
 
-      // 2) Pips: círculos azules
+      // Pips: círculos azules
       ctx.save();
       ctx.strokeStyle = 'rgba(90,162,255,.95)';
       ctx.lineWidth = baseLW;
       for (const p of res.pips){
         const r = Math.max(p.width, p.height) * 0.72;
-        ctx.beginPath();
-        ctx.arc(p.cx, p.cy, r, 0, Math.PI*2);
-        ctx.stroke();
+        ctx.beginPath(); ctx.arc(p.cx, p.cy, r, 0, Math.PI*2); ctx.stroke();
       }
       ctx.restore();
 
-      // 3) Recuadro amarillo + número por grupo/ficha
+      // Recuadro amarillo + número por grupo
       ctx.save();
       ctx.font = 'bold ' + Math.max(16, Math.round(W/50)) + 'px sans-serif';
       ctx.textBaseline = 'bottom';
@@ -708,7 +647,6 @@
         ctx.strokeStyle = 'rgba(255,200,80,.95)';
         ctx.lineWidth = baseLW;
         ctx.strokeRect(minX-pad, minY-pad, (maxX-minX)+pad*2, (maxY-minY)+pad*2);
-
         const label = String(g.length);
         const tw = ctx.measureText(label).width;
         const th = parseInt(ctx.font, 10) || 18;
@@ -732,8 +670,7 @@
     btnRetry.addEventListener('click', retry);
     btnAddA.addEventListener('click', () => addTo(colA));
     btnAddB.addEventListener('click', () => addTo(colB));
-
-    document.addEventListener('keydown', (e) => {
+    document.addEventListener('keydown', e => {
       if (e.key === 'Escape' && !modal.hidden) close();
     });
 
