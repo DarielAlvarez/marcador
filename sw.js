@@ -1,5 +1,5 @@
 /* Service Worker del Marcador — cachea la app completa para uso 100% offline */
-const CACHE_NAME = 'marcador-v2'; // subimos versión por el cambio de IA
+const CACHE_NAME = 'marcador-v3'; // subimos versión por el cambio de IA
 
 const PRECACHE = [
   './',
