@@ -1,3 +1,4 @@
+                                                       </html>
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -479,8 +480,8 @@ body{
      ============ IA: ONNX Runtime Web =============
      ========================================================= */
   const MODEL_URL = 'best.onnx';
-  const CONF_THRESHOLD = 0.45;
-  const IOU_THRESHOLD = 0.45;
+  const CONF_THRESHOLD = 0.55;
+  const IOU_THRESHOLD = 0.35;
   const INPUT_SIZE = 640;
 
   let ortSession = null;
@@ -491,10 +492,9 @@ body{
     if (ortLoadingPromise) return ortLoadingPromise;
 
     ortLoadingPromise = (async () => {
-      // Rutas locales de los WASM (los archivos deben estar junto a index.html)
       if (window.ort && ort.env && ort.env.wasm){
         ort.env.wasm.wasmPaths = './';
-        ort.env.wasm.numThreads = 1; // más compatible en móviles
+        ort.env.wasm.numThreads = 1;
         ort.env.wasm.simd = true;
       }
 
@@ -533,9 +533,9 @@ body{
     const N = size * size;
 
     for (let i = 0; i < N; i++){
-      float32[i]         = data[i * 4]     / 255.0; // R
-      float32[N + i]     = data[i * 4 + 1] / 255.0; // G
-      float32[2 * N + i] = data[i * 4 + 2] / 255.0; // B
+      float32[i]         = data[i * 4]     / 255.0;
+      float32[N + i]     = data[i * 4 + 1] / 255.0;
+      float32[2 * N + i] = data[i * 4 + 2] / 255.0;
     }
 
     const tensor = new ort.Tensor('float32', float32, [1, 3, size, size]);
@@ -545,7 +545,7 @@ body{
   /* ---------- Decodificar salida YOLOv8 [1, 4+nc, N] ---------- */
   function decodeYOLOv8(tensor, confThreshold){
     const data = tensor.data;
-    const dims = tensor.dims;             // [1, 4+nc, numBoxes]
+    const dims = tensor.dims;
     const numClasses = dims[1] - 4;
     const numBoxes = dims[2];
     const detections = [];
@@ -571,7 +571,7 @@ body{
         x2: cx + w / 2,
         y2: cy + h / 2,
         conf: maxConf,
-        class: maxClass // 0..11 → pip-1..pip-12
+        class: maxClass
       });
     }
     return detections;
@@ -632,14 +632,13 @@ body{
       maxY: (d.y2 - padY) / scale,
       area: (d.w / scale) * (d.h / scale),
       conf: d.conf,
-      class: d.class,
-      classValue: d.class + 1 // pip-1..pip-12 → 1..12
+      class: d.class
     }));
 
-    // Suma total = suma de los valores de clase (cada caja = una mitad con N pips)
-    const total = pips.reduce((acc, p) => acc + p.classValue, 0);
+    // Cada caja = 1 pip. El total es simplemente el número de cajas.
+    const total = pips.length;
 
-    return { pips, groups: pips.map(p => [p]), total, boxCount: pips.length };
+    return { pips, total, boxCount: pips.length };
   }
 
   /* =========================================================
@@ -697,7 +696,6 @@ body{
       video.srcObject = stream;
       try{ await video.play(); } catch(e){ /* ignora */ }
 
-      // Pre-cargar el modelo en segundo plano
       loadModel().catch(err => console.warn('Error precargando modelo:', err));
     }
 
@@ -745,16 +743,16 @@ body{
       const t = res.total;
 
       if (boxes === 0){
-        infoEl.innerHTML = 'No se detectaron mitades de ficha.<br>Prueba con más contraste, mejor luz y las fichas separadas.';
+        infoEl.innerHTML = 'No se detectaron pips.<br>Prueba con más contraste, mejor luz y las fichas separadas.';
         btnCapture.hidden = true;
         btnRetry.hidden = false;
         btnAddA.hidden = true;
         btnAddB.hidden = true;
       } else {
         infoEl.innerHTML =
-          `<strong>${boxes}</strong> mitad(es) detectada(s) · ` +
-          `Suma total: <strong style="color:#7bb4ff;font-size:1.1em">${t}</strong><br>` +
-          `<span style="font-size:12px;opacity:.7">Revisa los recuadros antes de añadir.</span>`;
+          `<strong>${boxes}</strong> pips detectados · ` +
+          `Total: <strong style="color:#7bb4ff;font-size:1.1em">${t}</strong><br>` +
+          `<span style="font-size:12px;opacity:.7">Revisa los círculos azules antes de añadir.</span>`;
         btnCapture.hidden = true;
         btnRetry.hidden = false;
         btnAddA.hidden = false;
@@ -774,18 +772,6 @@ body{
         ctx.strokeStyle = 'rgba(90,162,255,.95)';
         ctx.lineWidth = Math.max(2, Math.round(ctx.canvas.width / 400));
         ctx.strokeRect(x, y, w, h);
-
-        // Etiqueta con el número de pips de esta mitad
-        const label = String(p.classValue);
-        ctx.font = 'bold ' + Math.max(18, Math.round(ctx.canvas.width / 40)) + 'px sans-serif';
-        ctx.textBaseline = 'bottom';
-        const tw = ctx.measureText(label).width;
-        const th = parseInt(ctx.font, 10) || 20;
-
-        ctx.fillStyle = 'rgba(0,0,0,.65)';
-        ctx.fillRect(x, y - th - 6, tw + 12, th + 6);
-        ctx.fillStyle = 'rgba(90,162,255,1)';
-        ctx.fillText(label, x + 6, y - 4);
       }
 
       ctx.restore();
@@ -849,4 +835,4 @@ body{
   }
 </script>
 </body>
-                                                       </html>
+</html>
