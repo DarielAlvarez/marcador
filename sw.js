@@ -1,25 +1,29 @@
-/* Service Worker del Marcador — cachea la app para uso 100% offline */
-const CACHE_NAME = 'marcador-v1';
+/* Service Worker del Marcador — cachea la app completa para uso 100% offline */
+const CACHE_NAME = 'marcador-v2'; // subimos versión por el cambio de IA
 
 const PRECACHE = [
   './',
   './index.html',
   './manifest.json',
-  './icon.svg'
+  './icon.svg',
+  './best.onnx',                    // modelo de IA
+  './ort.min.js',                   // runtime ONNX
+  './ort-wasm-simd-threaded.wasm',  // WASM runtime
+  './ort-wasm-simd-threaded.jsep.wasm'
 ];
 
-/* Instalación: guarda los archivos base */
 self.addEventListener('install', (event) => {
   event.waitUntil((async () => {
     const cache = await caches.open(CACHE_NAME);
     await Promise.all(
-      PRECACHE.map(url => cache.add(url).catch(() => { /* ignora fallos sueltos */ }))
+      PRECACHE.map(url => cache.add(url).catch(err => {
+        console.warn('No se pudo precachear:', url, err);
+      }))
     );
     await self.skipWaiting();
   })());
 });
 
-/* Activación: borra cachés antiguas */
 self.addEventListener('activate', (event) => {
   event.waitUntil((async () => {
     const keys = await caches.keys();
@@ -28,15 +32,13 @@ self.addEventListener('activate', (event) => {
   })());
 });
 
-/* Fetch */
 self.addEventListener('fetch', (event) => {
   const req = event.request;
   if (req.method !== 'GET') return;
 
   const url = new URL(req.url);
-  if (url.origin !== self.location.origin) return; // no tocar recursos externos
+  if (url.origin !== self.location.origin) return;
 
-  /* Navegación (abrir la página): red primero, caché como respaldo */
   if (req.mode === 'navigate') {
     event.respondWith((async () => {
       try {
@@ -58,7 +60,6 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  /* Resto de recursos: caché primero, red como respaldo */
   event.respondWith((async () => {
     const cached = await caches.match(req);
     if (cached) return cached;
