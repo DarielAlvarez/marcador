@@ -109,8 +109,6 @@
     position:relative; background:#000; display:flex; align-items:center; justify-content:center;
     min-height:240px; max-height:58vh; overflow:hidden;
   }
-  /* Contenedor que se ajusta exactamente al tamaño renderizado del vídeo,
-     para que el canvas de overlay quede perfectamente alineado encima. */
   .cam-view{ position:relative; display:inline-block; max-width:100%; max-height:58vh; line-height:0; }
   .cam-view video{ display:block; max-width:100%; max-height:58vh; }
   .cam-view canvas#camCanvas{ display:block; max-width:100%; max-height:58vh; }
@@ -433,13 +431,10 @@
     return out;
   }
 
-  /* --- PUNTO 1: aplanado de iluminación ---
-     En vez de un único umbral global (Otsu clásico), primero estimamos el
-     "fondo" de iluminación local (un desenfoque muy grande, mayor que el
-     tamaño de una ficha) y lo restamos de la imagen. Así cada zona de la
-     foto se normaliza contra su propia iluminación en vez de compararse
-     con la media de toda la escena. Esto es lo que hace que una sombra en
-     una esquina o un móvil mal expuesto ya no rompa la detección. */
+  /* --- Aplanado de iluminación ---
+     Estimamos el "fondo" de iluminación local con un desenfoque grande y lo
+     restamos de la imagen. Así cada zona se normaliza contra su propia
+     iluminación en vez de compararse con la media de toda la escena. */
   function flattenIllumination(gray, w, h){
     const radius = Math.max(4, Math.round(Math.min(w, h) / 7));
     const background = boxBlur(gray, w, h, radius);
@@ -525,20 +520,62 @@
     return comps;
   }
 
+  /* --- Apertura morfológica (erosión + dilatación) con kernel cuadrado.
+         Se aplica sobre la imagen binaria para eliminar ruido de sal y
+         pimienta y motas de pocos píxeles antes de etiquetar componentes. --- */
+  function morphOpen(bin, w, h, radius){
+    const eroded = new Uint8Array(w*h);
+    for (let y = 0; y < h; y++){
+      for (let x = 0; x < w; x++){
+        let ok = 1;
+        for (let dy = -radius; dy <= radius && ok; dy++){
+          const yy = y + dy;
+          if (yy < 0 || yy >= h){ ok = 0; break; }
+          const row = yy * w;
+          for (let dx = -radius; dx <= radius; dx++){
+            const xx = x + dx;
+            if (xx < 0 || xx >= w || !bin[row + xx]){ ok = 0; break; }
+          }
+        }
+        eroded[y*w + x] = ok;
+      }
+    }
+    const out = new Uint8Array(w*h);
+    for (let y = 0; y < h; y++){
+      for (let x = 0; x < w; x++){
+        let ok = 0;
+        for (let dy = -radius; dy <= radius && !ok; dy++){
+          const yy = y + dy;
+          if (yy < 0 || yy >= h) continue;
+          const row = yy * w;
+          for (let dx = -radius; dx <= radius; dx++){
+            const xx = x + dx;
+            if (xx >= 0 && xx < w && eroded[row + xx]){ ok = 1; break; }
+          }
+        }
+        out[y*w + x] = ok;
+      }
+    }
+    return out;
+  }
+
   /* --- Filtrado adaptativo: filtro laxo + mediana --- */
   function filterPips(candidates, imgW, imgH){
     const maxDim = Math.min(imgW, imgH) * 0.35;
+    // Área mínima absoluta: un pip real nunca es más pequeño que ~0.02 % de la imagen.
+    const minAbsArea = Math.max(16, (imgW * imgH) * 0.0002);
 
     const loose = candidates.filter(c => {
-      if (c.width < 2 || c.height < 2) return false;
+      if (c.area < minAbsArea) return false;
+      if (c.width < 3 || c.height < 3) return false;
       if (c.width > maxDim || c.height > maxDim) return false;
       const aspect = Math.max(c.width, c.height) / Math.min(c.width, c.height);
-      if (aspect > 3.5) return false;
-      if (c.fill < 0.35) return false;
+      if (aspect > 3.0) return false;
+      if (c.fill < 0.45) return false;
       if (c.fill > 0.93) return false;
       const r = (c.width + c.height) / 4;
       const circleArea = Math.PI * r * r;
-      if (c.area / circleArea < 0.40) return false;
+      if (c.area / circleArea < 0.45) return false;
       return true;
     });
 
@@ -548,10 +585,10 @@
     const median = areas[Math.floor(areas.length / 2)];
     const medD   = Math.sqrt(median / Math.PI) * 2;
 
-    const minArea = median * 0.30;
-    const maxArea = median * 4.50;
-    const minSide = Math.max(2, medD * 0.45);
-    const maxSide = medD * 3.00;
+    const minArea = median * 0.40;
+    const maxArea = median * 3.50;
+    const minSide = Math.max(3, medD * 0.55);
+    const maxSide = medD * 2.50;
 
     return loose.filter(c =>
       c.area   >= minArea && c.area   <= maxArea &&
@@ -594,12 +631,14 @@
   /* --- Detectar pips de una polaridad, sobre imagen ya aplanada --- */
   function detectPips(flat, w, h, polarity){
     const thr = otsu(flat);
-    const bin = new Uint8Array(w*h);
+    let bin = new Uint8Array(w*h);
     if (polarity === 'dark'){
       for (let i = 0; i < flat.length; i++) bin[i] = flat[i] < thr ? 1 : 0;
     } else {
       for (let i = 0; i < flat.length; i++) bin[i] = flat[i] >= thr ? 1 : 0;
     }
+    // Apertura morfológica: elimina motas de 1–3 px antes de etiquetar componentes.
+    bin = morphOpen(bin, w, h, 1);
     const comps = connectedComponents(bin, w, h);
     return filterPips(comps, w, h);
   }
@@ -621,7 +660,7 @@
 
     const imgData = tctx.getImageData(0, 0, PW, PH);
     const gray    = toGray(imgData, PW, PH);
-    const flat    = flattenIllumination(gray, PW, PH); // <-- PUNTO 1
+    const flat    = flattenIllumination(gray, PW, PH);
 
     const darkPips  = detectPips(flat, PW, PH, 'dark');
     const lightPips = detectPips(flat, PW, PH, 'light');
@@ -729,11 +768,7 @@
       btnAddB.hidden = true;
     }
 
-    /* --- PUNTO 3: vista previa en vivo ---
-       Corre el pipeline de detección periódicamente sobre el vídeo y
-       dibuja el resultado en un canvas transparente superpuesto, para que
-       el usuario pueda mover el móvil / ajustar la luz hasta que los
-       círculos azules marquen bien los puntos, antes de capturar. */
+    /* --- Vista previa en vivo --- */
     function syncOverlaySize(){
       const vw = video.videoWidth, vh = video.videoHeight;
       if (!vw || !vh) return false;
@@ -758,7 +793,6 @@
         const res = processFrame(liveCanvas, PROC_W_LIVE);
         drawDetectionOverlay(overlayCtx, overlay.width, overlay.height, res);
       } catch(e){
-        // Si un frame falla no pasa nada, simplemente se reintenta en el siguiente tick.
         console.warn('live preview:', e);
       } finally {
         liveBusy = false;
@@ -790,7 +824,7 @@
           torchSupported = true;
           btnTorch.hidden = false;
         }
-      } catch(e){ /* getCapabilities no soportado en algunos navegadores */ }
+      } catch(e){}
     }
 
     async function toggleTorch(){
@@ -832,7 +866,6 @@
       video.srcObject = stream;
       track = stream.getVideoTracks()[0] || null;
 
-      // Mejor esfuerzo: pedir enfoque y exposición continuos si el navegador lo soporta.
       if (track && typeof track.getCapabilities === 'function'){
         try{
           const caps = track.getCapabilities();
@@ -840,14 +873,13 @@
           if (caps.focusMode && caps.focusMode.includes('continuous')) advanced.focusMode = 'continuous';
           if (caps.exposureMode && caps.exposureMode.includes('continuous')) advanced.exposureMode = 'continuous';
           if (Object.keys(advanced).length) await track.applyConstraints({ advanced: [advanced] });
-        } catch(e){ /* opcional, se ignora si falla */ }
+        } catch(e){}
       }
 
       await setupTorch();
 
       try{ await video.play(); } catch(e){}
 
-      // Espera a tener dimensiones reales de vídeo antes de arrancar la vista en vivo.
       if (video.readyState >= 2 && video.videoWidth){
         startLive();
       } else {
@@ -880,7 +912,7 @@
       ctx.drawImage(video, 0, 0, vw, vh);
 
       let res;
-      try{ res = processFrame(canvas, PROC_W); } // resolución alta para el resultado final
+      try{ res = processFrame(canvas, PROC_W); }
       catch(e){
         console.error(e);
         infoEl.textContent = 'Error procesando la imagen: ' + e.message;
@@ -938,8 +970,6 @@
       if (e.key === 'Escape' && !modal.hidden) close();
     });
 
-    // Si la pestaña pasa a segundo plano, pausa el bucle en vivo para ahorrar batería/CPU
-    // y reanúdalo al volver, siempre que seguimos en la vista de vídeo (no en un resultado capturado).
     document.addEventListener('visibilitychange', () => {
       if (modal.hidden) return;
       if (document.hidden){ stopLive(); }
@@ -968,4 +998,3 @@
 </script>
 </body>
 </html>
-
