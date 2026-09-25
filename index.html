@@ -1,230 +1,167 @@
-                                                       </html>
 <!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Marcador</title>
-
-<!-- PWA / offline -->
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#1b1b22">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Marcador">
-<link rel="apple-touch-icon" href="icon.svg">
-
-<!-- ONNX Runtime Web (local, para funcionar offline) -->
-<script src="ort.min.js"></script>
-
 <style>
-:root{
-  --bg-top: #1b1b22;
-  --bg-bottom: #262630;
-  --panel-normal:#eef0f4;
-  --panel-fg: #101418;
-  --red-bg: #d64343;
-  --green-bg: #2fb56b;
-  --accent: #5aa2ff;
-  --text: #e8eaf0;
-  --text-dim: #9aa0ac;
-}
-*{ box-sizing: border-box; }
-html, body{ height: 100%; }
-body{
-  margin: 0;
-  min-height: 100vh;
-  min-height: 100dvh;
-  padding: 20px 16px 32px;
-  font-family: "Segoe UI", Inter, Roboto, system-ui, -apple-system, sans-serif;
-  background: linear-gradient(180deg, var(--bg-top) 0%, var(--bg-bottom) 100%);
-  color: var(--text);
-  -webkit-text-size-adjust: 100%;
-  -webkit-font-smoothing: antialiased;
-}
-.app{
-  width: 100%; max-width: 900px; margin: 0 auto;
-  display: flex; flex-direction: column; gap: 22px;
-}
-.header{
-  display: flex; align-items: baseline; justify-content: space-between;
-  gap: 12px; padding: 0 4px;
-}
-.header h1{ margin: 0; font-size: 18px; font-weight: 600; letter-spacing: .3px; color: var(--text); }
-.header .hint{ font-size: 12.5px; color: var(--text-dim); }
-.columns{ display: flex; gap: 16px; align-items: stretch; }
-.column{
-  flex: 1 1 0; min-width: 0;
-  display: flex; flex-direction: column; gap: 12px;
-  padding: 18px 16px 16px; border-radius: 16px;
-  background: var(--panel); color: var(--fg);
-  box-shadow: 0 10px 30px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.08);
-  transition: background-color .22s ease, color .22s ease, box-shadow .22s ease;
-  --panel: var(--panel-normal);
-  --fg: var(--panel-fg);
-  --field-bg: #ffffff;
-  --field-border: #d0d4dc;
-  --field-ph: #98a0ad;
-  --divider: rgba(0,0,0,.08);
-}
-.column.red, .column.green{
-  --fg: #ffffff;
-  --field-bg: rgba(0, 0, 0, .22);
-  --field-border: rgba(255, 255, 255, .35);
-  --field-ph: rgba(255, 255, 255, .65);
-  --divider: rgba(255, 255, 255, .25);
-}
-.column.red{
-  --panel: var(--red-bg);
-  box-shadow: 0 10px 30px rgba(214, 67, 67, .35), inset 0 1px 0 rgba(255,255,255,.12);
-}
-.column.green{
-  --panel: var(--green-bg);
-  box-shadow: 0 10px 30px rgba(47, 181, 107, .35), inset 0 1px 0 rgba(255,255,255,.12);
-}
-.column input{
-  width: 100%; padding: 10px 12px; font: inherit; font-size: 16px;
-  color: var(--fg); background: var(--field-bg);
-  border: 1px solid var(--field-border); border-radius: 10px; outline: none;
-  transition: background-color .2s ease, border-color .2s ease, box-shadow .2s ease, color .2s ease;
-}
-.column input::placeholder{ color: var(--field-ph); }
-.column input:focus{
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(90, 162, 255, .3);
-}
-.column input.name-edit{
-  background: transparent; border: none;
-  border-bottom: 2px solid var(--divider);
-  border-radius: 0; padding: 4px 2px 8px; text-align: center;
-  font-weight: 600; font-size: 15.5px; letter-spacing: .5px;
-  text-transform: none;
-}
-.column input.name-edit:focus{ box-shadow: none; border-bottom-color: currentColor; }
-.rows{ display: flex; flex-direction: column; gap: 8px; }
-.row-input{ text-align: right; font-variant-numeric: tabular-nums; font-weight: 500; }
-.sum{
-  margin-top: auto; padding-top: 12px;
-  border-top: 1px solid var(--divider);
-  display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
-}
-.sum-label{
-  font-size: 12px; font-weight: 600; letter-spacing: 1.2px;
-  text-transform: uppercase; opacity: .7;
-}
-.sum-value{
-  font-size: 26px; font-weight: 700; line-height: 1;
-  font-variant-numeric: tabular-nums;
-}
-.controls{
-  display: flex; flex-wrap: wrap; align-items: center; justify-content: center;
-  gap: 12px; padding: 14px 16px; font-size: 14.5px; color: var(--text-dim);
-  background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.06);
-  border-radius: 14px;
-}
-.controls label{ letter-spacing: .3px; }
-#threshold{
-  width: 110px; padding: 10px 12px; font: inherit; font-size: 16px;
-  text-align: center; font-variant-numeric: tabular-nums;
-  color: var(--text); background: rgba(255,255,255,.05);
-  border: 1px solid rgba(255,255,255,.12); border-radius: 10px; outline: none;
-  transition: border-color .2s ease, box-shadow .2s ease, background-color .2s ease;
-}
-#threshold:focus{
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(90, 162, 255, .25);
-  background: rgba(255,255,255,.08);
-}
-.controls button{
-  padding: 10px 20px; font: inherit; font-size: 14.5px; font-weight: 600;
-  letter-spacing: .4px; color: var(--text); background: rgba(255,255,255,.06);
-  border: 1px solid rgba(255,255,255,.12); border-radius: 10px; cursor: pointer;
-  transition: background-color .15s ease, border-color .15s ease, transform .1s ease;
-}
-.controls button:hover{
-  background: rgba(255,255,255,.12);
-  border-color: rgba(255,255,255,.22);
-}
-.controls button:active{ transform: translateY(1px); }
-#scan{ background: rgba(90,162,255,.18); border-color: rgba(90,162,255,.45); color: #cfe2ff; }
-#scan:hover{ background: rgba(90,162,255,.3); border-color: rgba(90,162,255,.7); }
-#scan:disabled{ opacity: .6; cursor: wait; }
+  :root{
+    --bg-top:      #1b1b22;
+    --bg-bottom:   #262630;
+    --panel-normal:#eef0f4;
+    --panel-fg:    #101418;
+    --red-bg:      #d64343;
+    --green-bg:    #2fb56b;
+    --accent:      #5aa2ff;
+    --text:        #e8eaf0;
+    --text-dim:    #9aa0ac;
+  }
+  *{ box-sizing: border-box; }
+  html, body{ height: 100%; }
+  body{
+    margin: 0;
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding: 20px 16px 32px;
+    font-family: "Segoe UI", Inter, Roboto, system-ui, -apple-system, sans-serif;
+    background: linear-gradient(180deg, var(--bg-top) 0%, var(--bg-bottom) 100%);
+    color: var(--text);
+    -webkit-text-size-adjust: 100%;
+    -webkit-font-smoothing: antialiased;
+  }
+  .app{ width:100%; max-width:900px; margin:0 auto; display:flex; flex-direction:column; gap:22px; }
+  .header{ display:flex; align-items:baseline; justify-content:space-between; gap:12px; padding:0 4px; }
+  .header h1{ margin:0; font-size:18px; font-weight:600; letter-spacing:.3px; color:var(--text); }
+  .header .hint{ font-size:12.5px; color:var(--text-dim); }
+  .columns{ display:flex; gap:16px; align-items:stretch; }
+  .column{
+    flex:1 1 0; min-width:0; display:flex; flex-direction:column; gap:12px;
+    padding:18px 16px 16px; border-radius:16px; background:var(--panel); color:var(--fg);
+    box-shadow:0 10px 30px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.08);
+    transition:background-color .22s ease, color .22s ease, box-shadow .22s ease;
+    --panel:var(--panel-normal); --fg:var(--panel-fg);
+    --field-bg:#ffffff; --field-border:#d0d4dc; --field-ph:#98a0ad;
+    --divider:rgba(0,0,0,.08);
+  }
+  .column.red,.column.green{
+    --fg:#ffffff; --field-bg:rgba(0,0,0,.22); --field-border:rgba(255,255,255,.35);
+    --field-ph:rgba(255,255,255,.65); --divider:rgba(255,255,255,.25);
+  }
+  .column.red{ --panel:var(--red-bg); box-shadow:0 10px 30px rgba(214,67,67,.35), inset 0 1px 0 rgba(255,255,255,.12); }
+  .column.green{ --panel:var(--green-bg); box-shadow:0 10px 30px rgba(47,181,107,.35), inset 0 1px 0 rgba(255,255,255,.12); }
+  .column input{
+    width:100%; padding:10px 12px; font:inherit; font-size:16px; color:var(--fg);
+    background:var(--field-bg); border:1px solid var(--field-border); border-radius:10px; outline:none;
+    transition:background-color .2s ease, border-color .2s ease, box-shadow .2s ease, color .2s ease;
+  }
+  .column input::placeholder{ color:var(--field-ph); }
+  .column input:focus{ border-color:var(--accent); box-shadow:0 0 0 3px rgba(90,162,255,.3); }
+  .column input.name-edit{
+    background:transparent; border:none; border-bottom:2px solid var(--divider); border-radius:0;
+    padding:4px 2px 8px; text-align:center; font-weight:600; font-size:15.5px; letter-spacing:.5px; text-transform:uppercase;
+  }
+  .column input.name-edit:focus{ box-shadow:none; border-bottom-color:currentColor; }
+  .rows{ display:flex; flex-direction:column; gap:8px; }
+  .row-input{ text-align:right; font-variant-numeric:tabular-nums; font-weight:500; }
+  .sum{ margin-top:auto; padding-top:12px; border-top:1px solid var(--divider); display:flex; align-items:baseline; justify-content:space-between; gap:8px; }
+  .sum-label{ font-size:12px; font-weight:600; letter-spacing:1.2px; text-transform:uppercase; opacity:.7; }
+  .sum-value{ font-size:26px; font-weight:700; line-height:1; font-variant-numeric:tabular-nums; }
+  .controls{
+    display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:12px;
+    padding:14px 16px; font-size:14.5px; color:var(--text-dim);
+    background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.06); border-radius:14px;
+  }
+  .controls label{ letter-spacing:.3px; }
+  #threshold{
+    width:110px; padding:10px 12px; font:inherit; font-size:16px; text-align:center;
+    font-variant-numeric:tabular-nums; color:var(--text);
+    background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.12); border-radius:10px; outline:none;
+    transition:border-color .2s ease, box-shadow .2s ease, background-color .2s ease;
+  }
+  #threshold:focus{ border-color:var(--accent); box-shadow:0 0 0 3px rgba(90,162,255,.25); background:rgba(255,255,255,.08); }
+  .controls button{
+    padding:10px 20px; font:inherit; font-size:14.5px; font-weight:600; letter-spacing:.4px;
+    color:var(--text); background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12);
+    border-radius:10px; cursor:pointer;
+    transition:background-color .15s ease, border-color .15s ease, transform .1s ease;
+  }
+  .controls button:hover{ background:rgba(255,255,255,.12); border-color:rgba(255,255,255,.22); }
+  .controls button:active{ transform:translateY(1px); }
+  #scan{ background:rgba(90,162,255,.18); border-color:rgba(90,162,255,.45); color:#cfe2ff; }
+  #scan:hover{ background:rgba(90,162,255,.3); border-color:rgba(90,162,255,.7); }
 
-/* ===== Modal cámara ===== */
-.modal{
-  position: fixed; inset: 0; background: rgba(0,0,0,.85);
-  backdrop-filter: blur(4px);
-  display: flex; align-items: center; justify-content: center;
-  z-index: 100; padding: 16px;
-}
-.modal[hidden]{ display: none; }
-.modal-content{
-  width: 100%; max-width: 760px; max-height: 96vh;
-  background: #1b1b22; border: 1px solid rgba(255,255,255,.08);
-  border-radius: 16px; overflow: hidden;
-  display: flex; flex-direction: column;
-  box-shadow: 0 20px 60px rgba(0,0,0,.55);
-}
-.modal-header{
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 14px 18px; border-bottom: 1px solid rgba(255,255,255,.08);
-}
-.modal-header h2{ margin: 0; font-size: 16px; font-weight: 600; }
-.modal-close{
-  background: none; border: none; color: var(--text);
-  font-size: 22px; cursor: pointer; padding: 0 8px; line-height: 1;
-}
-.modal-close:hover{ color: #fff; }
-.cam-stage{
-  position: relative; background: #000;
-  display: flex; align-items: center; justify-content: center;
-  min-height: 240px; max-height: 58vh; overflow: hidden;
-}
-.cam-stage video, .cam-stage canvas{
-  max-width: 100%; max-height: 58vh; display: block;
-}
-.cam-stage video[hidden], .cam-stage canvas[hidden]{ display: none; }
-.modal-info{
-  padding: 12px 18px; font-size: 14px; color: var(--text-dim);
-  text-align: center; min-height: 44px; line-height: 1.4;
-}
-.modal-actions{
-  display: flex; gap: 8px; padding: 0 18px 18px;
-  flex-wrap: wrap; justify-content: center;
-}
-.modal-actions button{
-  padding: 10px 18px; font: inherit; font-size: 14.5px; font-weight: 600;
-  border-radius: 10px; cursor: pointer;
-  background: rgba(255,255,255,.06); color: var(--text);
-  border: 1px solid rgba(255,255,255,.12);
-  transition: background-color .15s ease, border-color .15s ease;
-}
-.modal-actions button:hover{ background: rgba(255,255,255,.12); }
-.modal-actions .btn-primary{
-  background: var(--accent); color: #0a0e14; border-color: var(--accent);
-}
-.modal-actions .btn-primary:hover{ background: #7bb4ff; }
-.modal-actions .btn-a{
-  background: rgba(238,240,244,.9); color: #101418;
-  border-color: rgba(238,240,244,.9);
-}
-.modal-actions .btn-b{
-  background: rgba(90,162,255,.85); color: #0a0e14;
-  border-color: rgba(90,162,255,.85);
-}
-@media (max-width: 480px){
-  body{ padding: 14px 10px 24px; }
-  .column{ padding: 14px 12px; gap: 10px; border-radius: 14px; }
-  .columns{ gap: 10px; }
-  .sum-value{ font-size: 22px; }
-  .header h1{ font-size: 16px; }
-  .header .hint{ display: none; }
-}
+  .modal{
+    position:fixed; inset:0; background:rgba(0,0,0,.85); backdrop-filter:blur(4px);
+    display:flex; align-items:center; justify-content:center; z-index:100; padding:16px;
+  }
+  .modal[hidden]{ display:none; }
+  .modal-content{
+    width:100%; max-width:760px; max-height:96vh;
+    background:#1b1b22; border:1px solid rgba(255,255,255,.08); border-radius:16px;
+    overflow:hidden; display:flex; flex-direction:column; box-shadow:0 20px 60px rgba(0,0,0,.55);
+  }
+  .modal-header{ display:flex; align-items:center; justify-content:space-between; padding:14px 18px; border-bottom:1px solid rgba(255,255,255,.08); }
+  .modal-header h2{ margin:0; font-size:16px; font-weight:600; }
+  .modal-close{ background:none; border:none; color:var(--text); font-size:22px; cursor:pointer; padding:0 8px; line-height:1; }
+  .modal-close:hover{ color:#fff; }
+
+  .cam-stage{
+    position:relative; background:#000; display:flex; align-items:center; justify-content:center;
+    min-height:240px; max-height:58vh; overflow:hidden;
+  }
+  /* Contenedor que se ajusta exactamente al tamaño renderizado del vídeo,
+     para que el canvas de overlay quede perfectamente alineado encima. */
+  .cam-view{ position:relative; display:inline-block; max-width:100%; max-height:58vh; line-height:0; }
+  .cam-view video{ display:block; max-width:100%; max-height:58vh; }
+  .cam-view canvas#camCanvas{ display:block; max-width:100%; max-height:58vh; }
+  .cam-view canvas#camOverlay{
+    position:absolute; inset:0; width:100%; height:100%; pointer-events:none;
+  }
+  .cam-view video[hidden],.cam-view canvas[hidden]{ display:none; }
+
+  .modal-info{ padding:12px 18px; font-size:14px; color:var(--text-dim); text-align:center; min-height:44px; line-height:1.4; }
+  .modal-actions{ display:flex; gap:8px; padding:0 18px 18px; flex-wrap:wrap; justify-content:center; }
+  .modal-actions button{
+    padding:10px 18px; font:inherit; font-size:14.5px; font-weight:600; border-radius:10px; cursor:pointer;
+    background:rgba(255,255,255,.06); color:var(--text); border:1px solid rgba(255,255,255,.12);
+    transition:background-color .15s ease, border-color .15s ease;
+  }
+  .modal-actions button:hover{ background:rgba(255,255,255,.12); }
+  .modal-actions button:disabled{ opacity:.4; cursor:default; }
+  .modal-actions .btn-primary{ background:var(--accent); color:#0a0e14; border-color:var(--accent); }
+  .modal-actions .btn-primary:hover{ background:#7bb4ff; }
+  .modal-actions .btn-a{ background:rgba(238,240,244,.9); color:#101418; border-color:rgba(238,240,244,.9); }
+  .modal-actions .btn-b{ background:rgba(90,162,255,.85); color:#0a0e14; border-color:rgba(90,162,255,.85); }
+  .modal-actions .btn-torch{ background:rgba(255,200,80,.18); border-color:rgba(255,200,80,.45); color:#ffe2a8; }
+  .modal-actions .btn-torch.on{ background:rgba(255,200,80,.85); color:#3a2a00; border-color:rgba(255,200,80,.85); }
+
+  .live-badge{
+    position:absolute; top:8px; left:8px; padding:4px 9px; border-radius:999px;
+    background:rgba(0,0,0,.55); border:1px solid rgba(255,255,255,.18);
+    font-size:11.5px; font-weight:600; letter-spacing:.4px; color:#cfe2ff;
+    display:flex; align-items:center; gap:6px; pointer-events:none;
+  }
+  .live-badge .dot{ width:7px; height:7px; border-radius:50%; background:#5aa2ff; box-shadow:0 0 0 0 rgba(90,162,255,.6); animation:pulse 1.4s infinite; }
+  @keyframes pulse{
+    0%{ box-shadow:0 0 0 0 rgba(90,162,255,.55); }
+    70%{ box-shadow:0 0 0 8px rgba(90,162,255,0); }
+    100%{ box-shadow:0 0 0 0 rgba(90,162,255,0); }
+  }
+
+  @media (max-width: 480px){
+    body{ padding:14px 10px 24px; }
+    .column{ padding:14px 12px; gap:10px; border-radius:14px; }
+    .columns{ gap:10px; }
+    .sum-value{ font-size:22px; }
+    .header h1{ font-size:16px; }
+    .header .hint{ display:none; }
+  }
 </style>
 </head>
 <body>
+
 <div class="app">
+
   <div class="header">
     <h1>Marcador</h1>
     <span class="hint">Los datos se guardan solos · Reiniciar limpia las filas</span>
@@ -234,19 +171,12 @@ body{
     <section class="column normal" id="col_a">
       <input class="name-edit" type="text" placeholder="Columna A" autocomplete="off">
       <div class="rows"></div>
-      <div class="sum">
-        <span class="sum-label">Suma</span>
-        <span class="sum-value">0</span>
-      </div>
+      <div class="sum"><span class="sum-label">Suma</span><span class="sum-value">0</span></div>
     </section>
-
     <section class="column normal" id="col_b">
       <input class="name-edit" type="text" placeholder="Columna B" autocomplete="off">
       <div class="rows"></div>
-      <div class="sum">
-        <span class="sum-label">Suma</span>
-        <span class="sum-value">0</span>
-      </div>
+      <div class="sum"><span class="sum-label">Suma</span><span class="sum-value">0</span></div>
     </section>
   </div>
 
@@ -256,9 +186,9 @@ body{
     <button id="scan" type="button">📷 Escanear fichas</button>
     <button id="reset" type="button">Reiniciar</button>
   </div>
+
 </div>
 
-<!-- ================= Modal cámara ================= -->
 <div class="modal" id="camModal" hidden>
   <div class="modal-content">
     <div class="modal-header">
@@ -266,14 +196,19 @@ body{
       <button class="modal-close" id="camClose" type="button">✕</button>
     </div>
     <div class="cam-stage">
-      <video id="camVideo" playsinline autoplay muted></video>
-      <canvas id="camCanvas" hidden></canvas>
+      <div class="cam-view" id="camView">
+        <video id="camVideo" playsinline autoplay muted></video>
+        <canvas id="camOverlay"></canvas>
+        <canvas id="camCanvas" hidden></canvas>
+        <span class="live-badge" id="liveBadge" hidden><span class="dot"></span>EN VIVO</span>
+      </div>
     </div>
     <div class="modal-info" id="camInfo">
-      Apunta la cámara a las fichas y pulsa «Capturar y contar».<br>
-      Consejo: fondo contrastante, luz uniforme, fichas sin solaparse.
+      Mueve el móvil hasta que los puntos queden marcados en azul, luego pulsa «Capturar y contar».<br>
+      Consejo: fondo contrastante, fichas separadas, evita reflejos directos.
     </div>
     <div class="modal-actions">
+      <button id="camTorch" class="btn-torch" type="button" hidden>💡 Linterna</button>
       <button id="camCapture" class="btn-primary" type="button">Capturar y contar</button>
       <button id="camRetry" type="button" hidden>↻ Reintentar</button>
       <button id="camAddA" class="btn-a" type="button" hidden>→ Columna A</button>
@@ -286,11 +221,8 @@ body{
 (() => {
   'use strict';
 
-  /* =========================================================
-     Persistencia (localStorage)
-     ========================================================= */
+  /* ============ Persistencia ============ */
   const STORAGE_KEY = 'marcador_state_v1';
-
   function readStorage(){
     try{
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -300,15 +232,11 @@ body{
       return data;
     } catch(e){ return null; }
   }
-
   function writeStorage(state){
-    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
-    catch(e){ /* modo privado o cuota llena */ }
+    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e){}
   }
 
-  /* =========================================================
-     Utilidades numéricas
-     ========================================================= */
+  /* ============ Numéricas ============ */
   const FLOAT_RE = /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/;
   function isValidFloat(s){ return FLOAT_RE.test(s); }
   function toFloat(s){
@@ -323,33 +251,26 @@ body{
     return String(Number(n.toFixed(10)));
   }
 
-  /* =========================================================
-     Column
-     ========================================================= */
+  /* ============ Columna ============ */
   class Column {
     constructor(root, onSumChanged, initial = null){
       this.root = root;
       this.onSumChanged = onSumChanged;
       this.rowsEl = root.querySelector('.rows');
       this.nameEl = root.querySelector('.name-edit');
-      this.sumEl = root.querySelector('.sum-value');
-      this.sum = 0;
+      this.sumEl  = root.querySelector('.sum-value');
+      this.sum    = 0;
 
       if (initial && typeof initial === 'object'){
         if (typeof initial.name === 'string') this.nameEl.value = initial.name;
         const rows = Array.isArray(initial.rows) ? initial.rows : [];
-        if (rows.length > 0){
-          for (const v of rows) this.addRow(v ?? '', false);
-        } else {
-          this.addRow('', false);
-        }
+        if (rows.length > 0){ for (const v of rows) this.addRow(v ?? '', false); }
+        else { this.addRow('', false); }
       } else {
         this.addRow('', false);
       }
 
-      this.nameEl.addEventListener('input', () => {
-        if (this.onSumChanged) this.onSumChanged();
-      });
+      this.nameEl.addEventListener('input', () => { if (this.onSumChanged) this.onSumChanged(); });
       this.updateSum();
     }
 
@@ -363,8 +284,8 @@ body{
       input.className = 'row-input';
       input.value = value;
 
-      input.addEventListener('input', () => this.handleInput(input, false));
-      input.addEventListener('blur', () => this.handleInput(input, true));
+      input.addEventListener('input',  () => this.handleInput(input, false));
+      input.addEventListener('blur',   () => this.handleInput(input, true));
       input.addEventListener('keydown', (e) => {
         if (e.key === 'Enter'){ e.preventDefault(); this.handleInput(input, true); }
       });
@@ -381,15 +302,11 @@ body{
       const val = input.value.trim();
       const isNum = val !== '' && isValidFloat(val);
       const isZero = isNum && parseFloat(val) === 0;
-
       if (this.isEmpty(input)){
         const next = input.nextElementSibling;
         if (next && this.isEmpty(next)){ next.remove(); this.updateSum(); return; }
       }
-
-      if (isNum && !isZero && this.rowsEl.lastElementChild === input){
-        this.addRow('', addFocus);
-      }
+      if (isNum && !isZero && this.rowsEl.lastElementChild === input){ this.addRow('', addFocus); }
     }
 
     updateSum(){
@@ -415,45 +332,34 @@ body{
     }
 
     resetRows(){
-      while (this.rowsEl.children.length > 1){
-        this.rowsEl.removeChild(this.rowsEl.lastElementChild);
-      }
+      while (this.rowsEl.children.length > 1){ this.rowsEl.removeChild(this.rowsEl.lastElementChild); }
       const first = this.rowsEl.firstElementChild;
       if (first) first.value = '';
       this.updateSum();
     }
-
     getSum(){ return this.sum; }
     getName(){ return this.nameEl.value; }
-    getRowValues(){
-      return Array.from(this.rowsEl.children).map(el => el.value);
-    }
+    getRowValues(){ return Array.from(this.rowsEl.children).map(el => el.value); }
   }
 
-  /* =========================================================
-     Estado global
-     ========================================================= */
-  let colA = null;
-  let colB = null;
-  let loading = true;
-
+  /* ============ Estado ============ */
+  let colA = null, colB = null, loading = true;
   const thresholdEl = document.getElementById('threshold');
-  const resetBtn = document.getElementById('reset');
-  const scanBtn = document.getElementById('scan');
+  const resetBtn    = document.getElementById('reset');
+  const scanBtn     = document.getElementById('scan');
 
   function setState(el, state){
-    el.classList.remove('normal', 'red', 'green');
+    el.classList.remove('normal','red','green');
     el.classList.add(state);
   }
 
   function persist(){
     if (loading) return;
-    const state = {
+    writeStorage({
       threshold: thresholdEl.value,
       colA: { name: colA.getName(), rows: colA.getRowValues() },
       colB: { name: colB.getName(), rows: colB.getRowValues() }
-    };
-    writeStorage(state);
+    });
   }
 
   function updateColors(){
@@ -464,9 +370,7 @@ body{
     const aAbove = sumA >= threshold;
     const bAbove = sumB >= threshold;
 
-    let stateA = 'normal';
-    let stateB = 'normal';
-
+    let stateA = 'normal', stateB = 'normal';
     if (aAbove && !bAbove){ stateA = 'green'; stateB = 'red'; }
     else if (bAbove && !aAbove){ stateA = 'red'; stateB = 'green'; }
     else if (aAbove && bAbove){ stateA = 'red'; stateB = 'red'; }
@@ -477,197 +381,429 @@ body{
   }
 
   /* =========================================================
-     ============ IA: ONNX Runtime Web =============
+     ============  VISIÓN  (adaptativo)  ====================
      ========================================================= */
-  const MODEL_URL = 'best.onnx';
-  const CONF_THRESHOLD = 0.55;
-  const IOU_THRESHOLD = 0.35;
-  const INPUT_SIZE = 640;
+  const PROC_W = 640;       // resolución de proceso para la captura final (alta calidad)
+  const PROC_W_LIVE = 420;  // resolución más baja para la vista previa en vivo (rendimiento)
 
-  let ortSession = null;
-  let ortLoadingPromise = null;
-
-  async function loadModel(){
-    if (ortSession) return ortSession;
-    if (ortLoadingPromise) return ortLoadingPromise;
-
-    ortLoadingPromise = (async () => {
-      if (window.ort && ort.env && ort.env.wasm){
-        ort.env.wasm.wasmPaths = './';
-        ort.env.wasm.numThreads = 1;
-        ort.env.wasm.simd = true;
-      }
-
-      const sess = await ort.InferenceSession.create(MODEL_URL, {
-        executionProviders: ['wasm'],
-        graphOptimizationLevel: 'all'
-      });
-      ortSession = sess;
-      return sess;
-    })();
-
-    return ortLoadingPromise;
+  /* --- Grayscale --- */
+  function toGray(imgData, w, h){
+    const gray = new Uint8Array(w * h);
+    const d = imgData.data;
+    for (let i = 0, n = w * h; i < n; i++){
+      gray[i] = (d[i*4]*0.299 + d[i*4+1]*0.587 + d[i*4+2]*0.114) | 0;
+    }
+    return gray;
   }
 
-  /* ---------- Preprocesar: letterbox a 640x640 ---------- */
-  function preprocess(srcCanvas, size){
+  /* --- Blur de caja separable O(n), usado tanto para suavizado como para
+         estimar el "fondo" de iluminación local --- */
+  function boxBlur(src, w, h, radius){
+    if (radius < 1) return Float32Array.from(src);
+    const tmp = new Float32Array(w*h);
+    const out = new Float32Array(w*h);
+
+    for (let y = 0; y < h; y++){
+      const row = y*w;
+      let sum = 0;
+      for (let x = -radius; x <= radius; x++){
+        const xi = x < 0 ? 0 : (x >= w ? w-1 : x);
+        sum += src[row + xi];
+      }
+      for (let x = 0; x < w; x++){
+        tmp[row+x] = sum / (radius*2+1);
+        const addX = x+radius+1 >= w ? w-1 : x+radius+1;
+        const remX = x-radius   < 0 ? 0   : x-radius;
+        sum += src[row+addX] - src[row+remX];
+      }
+    }
+    for (let x = 0; x < w; x++){
+      let sum = 0;
+      for (let y = -radius; y <= radius; y++){
+        const yi = y < 0 ? 0 : (y >= h ? h-1 : y);
+        sum += tmp[yi*w + x];
+      }
+      for (let y = 0; y < h; y++){
+        out[y*w+x] = sum / (radius*2+1);
+        const addY = y+radius+1 >= h ? h-1 : y+radius+1;
+        const remY = y-radius   < 0 ? 0   : y-radius;
+        sum += tmp[addY*w+x] - tmp[remY*w+x];
+      }
+    }
+    return out;
+  }
+
+  /* --- PUNTO 1: aplanado de iluminación ---
+     En vez de un único umbral global (Otsu clásico), primero estimamos el
+     "fondo" de iluminación local (un desenfoque muy grande, mayor que el
+     tamaño de una ficha) y lo restamos de la imagen. Así cada zona de la
+     foto se normaliza contra su propia iluminación en vez de compararse
+     con la media de toda la escena. Esto es lo que hace que una sombra en
+     una esquina o un móvil mal expuesto ya no rompa la detección. */
+  function flattenIllumination(gray, w, h){
+    const radius = Math.max(4, Math.round(Math.min(w, h) / 7));
+    const background = boxBlur(gray, w, h, radius);
+    const flat = new Uint8Array(w*h);
+    for (let i = 0; i < gray.length; i++){
+      const v = 128 + (gray[i] - background[i]);
+      flat[i] = v < 0 ? 0 : (v > 255 ? 255 : v);
+    }
+    // Suavizado ligero adicional para reducir ruido de alta frecuencia
+    const smoothed = boxBlur(flat, w, h, 1);
+    const out = new Uint8Array(w*h);
+    for (let i = 0; i < flat.length; i++) out[i] = smoothed[i] | 0;
+    return out;
+  }
+
+  /* --- Otsu --- */
+  function otsu(gray){
+    const hist = new Uint32Array(256);
+    for (let i = 0; i < gray.length; i++) hist[gray[i]]++;
+    const total = gray.length;
+    let sum = 0;
+    for (let i = 0; i < 256; i++) sum += i * hist[i];
+
+    let sumB = 0, wB = 0, max = -1, thr = 128;
+    for (let t = 0; t < 256; t++){
+      wB += hist[t];
+      if (wB === 0) continue;
+      const wF = total - wB;
+      if (wF === 0) break;
+      sumB += t * hist[t];
+      const mB = sumB / wB;
+      const mF = (sum - sumB) / wF;
+      const between = wB * wF * (mB - mF) * (mB - mF);
+      if (between > max){ max = between; thr = t; }
+    }
+    return thr;
+  }
+
+  /* --- Componentes conexas iterativo (4-vecinos) --- */
+  function connectedComponents(bin, w, h){
+    const labels = new Int32Array(w*h).fill(-1);
+    const stack  = new Int32Array(w*h);
+    const comps  = [];
+
+    for (let y = 0; y < h; y++){
+      for (let x = 0; x < w; x++){
+        const idx = y*w + x;
+        if (!bin[idx] || labels[idx] !== -1) continue;
+
+        const label = comps.length;
+        let sp = 0;
+        stack[sp++] = idx;
+        labels[idx] = label;
+
+        let area = 0, minX = x, maxX = x, minY = y, maxY = y, sumX = 0, sumY = 0;
+
+        while (sp > 0){
+          const p  = stack[--sp];
+          const py = (p / w) | 0;
+          const px = p - py*w;
+          area++; sumX += px; sumY += py;
+          if (px < minX) minX = px;
+          if (px > maxX) maxX = px;
+          if (py < minY) minY = py;
+          if (py > maxY) maxY = py;
+
+          if (px > 0){     const ni=p-1; if (bin[ni] && labels[ni]===-1){ labels[ni]=label; stack[sp++]=ni; } }
+          if (px < w - 1){ const ni=p+1; if (bin[ni] && labels[ni]===-1){ labels[ni]=label; stack[sp++]=ni; } }
+          if (py > 0){     const ni=p-w; if (bin[ni] && labels[ni]===-1){ labels[ni]=label; stack[sp++]=ni; } }
+          if (py < h - 1){ const ni=p+w; if (bin[ni] && labels[ni]===-1){ labels[ni]=label; stack[sp++]=ni; } }
+        }
+
+        const bw = maxX - minX + 1;
+        const bh = maxY - minY + 1;
+        comps.push({
+          label, area, minX, maxX, minY, maxY,
+          width: bw, height: bh,
+          cx: sumX/area, cy: sumY/area,
+          fill: area / (bw * bh)
+        });
+      }
+    }
+    return comps;
+  }
+
+  /* --- Filtrado adaptativo: filtro laxo + mediana --- */
+  function filterPips(candidates, imgW, imgH){
+    const maxDim = Math.min(imgW, imgH) * 0.35;
+
+    const loose = candidates.filter(c => {
+      if (c.width < 2 || c.height < 2) return false;
+      if (c.width > maxDim || c.height > maxDim) return false;
+      const aspect = Math.max(c.width, c.height) / Math.min(c.width, c.height);
+      if (aspect > 3.5) return false;
+      if (c.fill < 0.35) return false;
+      if (c.fill > 0.93) return false;
+      const r = (c.width + c.height) / 4;
+      const circleArea = Math.PI * r * r;
+      if (c.area / circleArea < 0.40) return false;
+      return true;
+    });
+
+    if (loose.length < 3) return loose;
+
+    const areas  = loose.map(c => c.area).sort((a, b) => a - b);
+    const median = areas[Math.floor(areas.length / 2)];
+    const medD   = Math.sqrt(median / Math.PI) * 2;
+
+    const minArea = median * 0.30;
+    const maxArea = median * 4.50;
+    const minSide = Math.max(2, medD * 0.45);
+    const maxSide = medD * 3.00;
+
+    return loose.filter(c =>
+      c.area   >= minArea && c.area   <= maxArea &&
+      c.width  >= minSide && c.width  <= maxSide &&
+      c.height >= minSide && c.height <= maxSide
+    );
+  }
+
+  /* --- Agrupar pips (solo para el overlay) --- */
+  const GROUP_DIST_FAC = 4.5;
+  function groupPips(pips){
+    if (pips.length === 0) return [];
+    const areas = pips.map(p => p.area).sort((a,b)=>a-b);
+    const medianArea = areas[Math.floor(areas.length / 2)];
+    const medianD    = Math.sqrt(medianArea / Math.PI) * 2;
+    const maxDist    = medianD * GROUP_DIST_FAC;
+    const maxDistSq  = maxDist * maxDist;
+
+    const parent = pips.map((_, i) => i);
+    const find = (i) => { while (parent[i] !== i){ parent[i] = parent[parent[i]]; i = parent[i]; } return i; };
+    const union = (a,b) => { const ra = find(a), rb = find(b); if (ra !== rb) parent[ra] = rb; };
+
+    for (let i = 0; i < pips.length; i++){
+      for (let j = i+1; j < pips.length; j++){
+        const dx = pips[i].cx - pips[j].cx;
+        const dy = pips[i].cy - pips[j].cy;
+        if (dx*dx + dy*dy < maxDistSq) union(i, j);
+      }
+    }
+
+    const map = new Map();
+    for (let i = 0; i < pips.length; i++){
+      const r = find(i);
+      if (!map.has(r)) map.set(r, []);
+      map.get(r).push(pips[i]);
+    }
+    return Array.from(map.values());
+  }
+
+  /* --- Detectar pips de una polaridad, sobre imagen ya aplanada --- */
+  function detectPips(flat, w, h, polarity){
+    const thr = otsu(flat);
+    const bin = new Uint8Array(w*h);
+    if (polarity === 'dark'){
+      for (let i = 0; i < flat.length; i++) bin[i] = flat[i] < thr ? 1 : 0;
+    } else {
+      for (let i = 0; i < flat.length; i++) bin[i] = flat[i] >= thr ? 1 : 0;
+    }
+    const comps = connectedComponents(bin, w, h);
+    return filterPips(comps, w, h);
+  }
+
+  /* --- Pipeline completo ---
+     procW controla la resolución de trabajo: más baja y rápida para la
+     vista previa en vivo, más alta para la captura final. */
+  function processFrame(srcCanvas, procW){
     const srcW = srcCanvas.width;
     const srcH = srcCanvas.height;
-    const scale = Math.min(size / srcW, size / srcH);
-    const newW = Math.round(srcW * scale);
-    const newH = Math.round(srcH * scale);
-    const padX = (size - newW) / 2;
-    const padY = (size - newH) / 2;
+    const PW   = procW || PROC_W;
+    const PH   = Math.max(1, Math.round(srcH * PW / srcW));
 
     const tmp = document.createElement('canvas');
-    tmp.width = size;
-    tmp.height = size;
-    const ctx = tmp.getContext('2d');
-    ctx.fillStyle = '#727272';
-    ctx.fillRect(0, 0, size, size);
-    ctx.drawImage(srcCanvas, padX, padY, newW, newH);
+    tmp.width  = PW;
+    tmp.height = PH;
+    const tctx = tmp.getContext('2d', { willReadFrequently: true });
+    tctx.drawImage(srcCanvas, 0, 0, PW, PH);
 
-    const imgData = ctx.getImageData(0, 0, size, size);
-    const data = imgData.data;
-    const float32 = new Float32Array(3 * size * size);
-    const N = size * size;
+    const imgData = tctx.getImageData(0, 0, PW, PH);
+    const gray    = toGray(imgData, PW, PH);
+    const flat    = flattenIllumination(gray, PW, PH); // <-- PUNTO 1
 
-    for (let i = 0; i < N; i++){
-      float32[i]         = data[i * 4]     / 255.0;
-      float32[N + i]     = data[i * 4 + 1] / 255.0;
-      float32[2 * N + i] = data[i * 4 + 2] / 255.0;
-    }
+    const darkPips  = detectPips(flat, PW, PH, 'dark');
+    const lightPips = detectPips(flat, PW, PH, 'light');
 
-    const tensor = new ort.Tensor('float32', float32, [1, 3, size, size]);
-    return { tensor, scale, padX, padY };
-  }
+    let chosenPips = (lightPips.length > darkPips.length) ? lightPips : darkPips;
 
-  /* ---------- Decodificar salida YOLOv8 [1, 4+nc, N] ---------- */
-  function decodeYOLOv8(tensor, confThreshold){
-    const data = tensor.data;
-    const dims = tensor.dims;
-    const numClasses = dims[1] - 4;
-    const numBoxes = dims[2];
-    const detections = [];
-
-    for (let i = 0; i < numBoxes; i++){
-      let maxConf = 0;
-      let maxClass = -1;
-      for (let c = 0; c < numClasses; c++){
-        const val = data[(4 + c) * numBoxes + i];
-        if (val > maxConf){ maxConf = val; maxClass = c; }
-      }
-      if (maxConf < confThreshold) continue;
-
-      const cx = data[0 * numBoxes + i];
-      const cy = data[1 * numBoxes + i];
-      const w  = data[2 * numBoxes + i];
-      const h  = data[3 * numBoxes + i];
-
-      detections.push({
-        cx, cy, w, h,
-        x1: cx - w / 2,
-        y1: cy - h / 2,
-        x2: cx + w / 2,
-        y2: cy + h / 2,
-        conf: maxConf,
-        class: maxClass
-      });
-    }
-    return detections;
-  }
-
-  /* ---------- NMS ---------- */
-  function computeIoU(a, b){
-    const x1 = Math.max(a.x1, b.x1);
-    const y1 = Math.max(a.y1, b.y1);
-    const x2 = Math.min(a.x2, b.x2);
-    const y2 = Math.min(a.y2, b.y2);
-    const inter = Math.max(0, x2 - x1) * Math.max(0, y2 - y1);
-    const areaA = (a.x2 - a.x1) * (a.y2 - a.y1);
-    const areaB = (b.x2 - b.x1) * (b.y2 - b.y1);
-    return inter / (areaA + areaB - inter + 1e-6);
-  }
-
-  function nms(detections, iouThreshold){
-    if (detections.length === 0) return [];
-    detections.sort((a, b) => b.conf - a.conf);
-    const kept = [];
-    const suppressed = new Set();
-    for (let i = 0; i < detections.length; i++){
-      if (suppressed.has(i)) continue;
-      kept.push(detections[i]);
-      for (let j = i + 1; j < detections.length; j++){
-        if (suppressed.has(j)) continue;
-        if (computeIoU(detections[i], detections[j]) > iouThreshold){
-          suppressed.add(j);
-        }
+    let total = 0;
+    if (chosenPips.length > 0){
+      const areas  = chosenPips.map(p => p.area).sort((a,b)=>a-b);
+      const median = areas[Math.floor(areas.length / 2)];
+      for (const p of chosenPips){
+        total += Math.max(1, Math.round(p.area / median));
       }
     }
-    return kept;
+
+    const sx = srcW / PW;
+    const sy = srcH / PH;
+    for (const p of chosenPips){
+      p.cx *= sx; p.cy *= sy;
+      p.minX *= sx; p.maxX *= sx;
+      p.minY *= sy; p.maxY *= sy;
+      p.width *= sx; p.height *= sy;
+      p.area *= sx * sy;
+    }
+
+    const chosenGroups = groupPips(chosenPips);
+
+    return { pips: chosenPips, groups: chosenGroups, total };
   }
 
-  /* ---------- Pipeline completo ---------- */
-  async function processFrameAI(srcCanvas){
-    const sess = await loadModel();
-    const { tensor, scale, padX, padY } = preprocess(srcCanvas, INPUT_SIZE);
+  /* --- Dibuja el overlay de detección sobre un contexto 2D dado,
+         a la resolución (w,h) de ese contexto --- */
+  function drawDetectionOverlay(ctx, w, h, res){
+    ctx.clearRect(0, 0, w, h);
+    ctx.save();
 
-    const feeds = {};
-    feeds[sess.inputNames[0]] = tensor;
-    const output = await sess.run(feeds);
+    for (const p of res.pips){
+      const r = Math.max(p.width, p.height) * 0.72;
+      ctx.beginPath();
+      ctx.arc(p.cx, p.cy, r, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(90,162,255,.95)';
+      ctx.lineWidth = Math.max(2, Math.round(w / 400));
+      ctx.stroke();
+    }
 
-    const outName = sess.outputNames[0];
-    const raw = output[outName];
-    const detections = decodeYOLOv8(raw, CONF_THRESHOLD);
-    const kept = nms(detections, IOU_THRESHOLD);
+    ctx.font = 'bold ' + Math.max(16, Math.round(w / 40)) + 'px sans-serif';
+    ctx.textBaseline = 'bottom';
+    for (const g of res.groups){
+      let minX=Infinity, minY=Infinity, maxX=-Infinity, maxY=-Infinity;
+      for (const p of g){
+        if (p.minX < minX) minX = p.minX;
+        if (p.minY < minY) minY = p.minY;
+        if (p.maxX > maxX) maxX = p.maxX;
+        if (p.maxY > maxY) maxY = p.maxY;
+      }
+      const pad = Math.max(6, Math.round(w / 100));
+      ctx.strokeStyle = 'rgba(255,200,80,.95)';
+      ctx.lineWidth = Math.max(2, Math.round(w / 400));
+      ctx.strokeRect(minX - pad, minY - pad, (maxX - minX) + pad*2, (maxY - minY) + pad*2);
 
-    const pips = kept.map(d => ({
-      cx: (d.cx - padX) / scale,
-      cy: (d.cy - padY) / scale,
-      width: d.w / scale,
-      height: d.h / scale,
-      minX: (d.x1 - padX) / scale,
-      minY: (d.y1 - padY) / scale,
-      maxX: (d.x2 - padX) / scale,
-      maxY: (d.y2 - padY) / scale,
-      area: (d.w / scale) * (d.h / scale),
-      conf: d.conf,
-      class: d.class
-    }));
-
-    // Cada caja = 1 pip. El total es simplemente el número de cajas.
-    const total = pips.length;
-
-    return { pips, total, boxCount: pips.length };
+      const label = String(g.length);
+      ctx.fillStyle = 'rgba(0,0,0,.6)';
+      const tw = ctx.measureText(label).width;
+      const th = parseInt(ctx.font, 10) || 18;
+      ctx.fillRect(minX - pad, minY - pad - th - 6, tw + 12, th + 6);
+      ctx.fillStyle = 'rgba(255,200,80,1)';
+      ctx.fillText(label, minX - pad + 6, minY - pad - 4);
+    }
+    ctx.restore();
   }
 
-  /* =========================================================
-     Controlador del modal de cámara
-     ========================================================= */
+  /* ============ Modal cámara ============ */
   const CamScanner = (() => {
-    const modal = document.getElementById('camModal');
-    const video = document.getElementById('camVideo');
-    const canvas = document.getElementById('camCanvas');
-    const infoEl = document.getElementById('camInfo');
-    const btnClose = document.getElementById('camClose');
+    const modal      = document.getElementById('camModal');
+    const camView    = document.getElementById('camView');
+    const video      = document.getElementById('camVideo');
+    const overlay    = document.getElementById('camOverlay');
+    const canvas     = document.getElementById('camCanvas');
+    const infoEl     = document.getElementById('camInfo');
+    const liveBadge  = document.getElementById('liveBadge');
+    const btnClose   = document.getElementById('camClose');
     const btnCapture = document.getElementById('camCapture');
-    const btnRetry = document.getElementById('camRetry');
-    const btnAddA = document.getElementById('camAddA');
-    const btnAddB = document.getElementById('camAddB');
+    const btnRetry   = document.getElementById('camRetry');
+    const btnAddA    = document.getElementById('camAddA');
+    const btnAddB    = document.getElementById('camAddB');
+    const btnTorch   = document.getElementById('camTorch');
 
-    let stream = null;
-    let result = null;
+    const overlayCtx = overlay.getContext('2d');
+
+    let stream = null, track = null, result = null;
+    let torchOn = false, torchSupported = false;
+    let liveTimer = null, liveBusy = false, liveCanvas = null;
+    const LIVE_INTERVAL_MS = 350;
 
     function resetUI(){
       result = null;
       video.hidden = false;
       canvas.hidden = true;
-      infoEl.innerHTML = 'Apunta la cámara a las fichas y pulsa «Capturar y contar».<br>Consejo: fondo contrastante, luz uniforme, fichas sin solaparse.';
+      overlay.hidden = false;
+      infoEl.innerHTML = 'Mueve el móvil hasta que los puntos queden marcados en azul, luego pulsa «Capturar y contar».<br>Consejo: fondo contrastante, fichas separadas, evita reflejos directos.';
       btnCapture.hidden = false;
       btnCapture.disabled = false;
       btnRetry.hidden = true;
       btnAddA.hidden = true;
       btnAddB.hidden = true;
+    }
+
+    /* --- PUNTO 3: vista previa en vivo ---
+       Corre el pipeline de detección periódicamente sobre el vídeo y
+       dibuja el resultado en un canvas transparente superpuesto, para que
+       el usuario pueda mover el móvil / ajustar la luz hasta que los
+       círculos azules marquen bien los puntos, antes de capturar. */
+    function syncOverlaySize(){
+      const vw = video.videoWidth, vh = video.videoHeight;
+      if (!vw || !vh) return false;
+      if (overlay.width !== vw || overlay.height !== vh){
+        overlay.width = vw;
+        overlay.height = vh;
+      }
+      return true;
+    }
+
+    function liveTick(){
+      if (video.hidden || modal.hidden || liveBusy) return;
+      if (!syncOverlaySize()){ return; }
+      liveBusy = true;
+      try{
+        if (!liveCanvas) liveCanvas = document.createElement('canvas');
+        liveCanvas.width  = video.videoWidth;
+        liveCanvas.height = video.videoHeight;
+        const lctx = liveCanvas.getContext('2d', { willReadFrequently: true });
+        lctx.drawImage(video, 0, 0, liveCanvas.width, liveCanvas.height);
+
+        const res = processFrame(liveCanvas, PROC_W_LIVE);
+        drawDetectionOverlay(overlayCtx, overlay.width, overlay.height, res);
+      } catch(e){
+        // Si un frame falla no pasa nada, simplemente se reintenta en el siguiente tick.
+        console.warn('live preview:', e);
+      } finally {
+        liveBusy = false;
+      }
+    }
+
+    function startLive(){
+      stopLive();
+      liveBadge.hidden = false;
+      liveTimer = setInterval(liveTick, LIVE_INTERVAL_MS);
+    }
+
+    function stopLive(){
+      if (liveTimer){ clearInterval(liveTimer); liveTimer = null; }
+      liveBadge.hidden = true;
+      overlayCtx.clearRect(0, 0, overlay.width, overlay.height);
+    }
+
+    async function setupTorch(){
+      torchSupported = false;
+      torchOn = false;
+      btnTorch.hidden = true;
+      btnTorch.classList.remove('on');
+      btnTorch.textContent = '💡 Linterna';
+      if (!track || typeof track.getCapabilities !== 'function') return;
+      try{
+        const caps = track.getCapabilities();
+        if (caps && caps.torch){
+          torchSupported = true;
+          btnTorch.hidden = false;
+        }
+      } catch(e){ /* getCapabilities no soportado en algunos navegadores */ }
+    }
+
+    async function toggleTorch(){
+      if (!track || !torchSupported) return;
+      const next = !torchOn;
+      try{
+        await track.applyConstraints({ advanced: [{ torch: next }] });
+        torchOn = next;
+        btnTorch.classList.toggle('on', torchOn);
+        btnTorch.textContent = torchOn ? '💡 Linterna (ON)' : '💡 Linterna';
+      } catch(e){
+        console.warn('No se pudo controlar la linterna:', e);
+      }
     }
 
     async function open(){
@@ -682,7 +818,7 @@ body{
         stream = await navigator.mediaDevices.getUserMedia({
           video: {
             facingMode: { ideal: 'environment' },
-            width: { ideal: 1280 },
+            width:  { ideal: 1280 },
             height: { ideal: 720 }
           },
           audio: false
@@ -694,21 +830,41 @@ body{
       }
 
       video.srcObject = stream;
-      try{ await video.play(); } catch(e){ /* ignora */ }
+      track = stream.getVideoTracks()[0] || null;
 
-      loadModel().catch(err => console.warn('Error precargando modelo:', err));
+      // Mejor esfuerzo: pedir enfoque y exposición continuos si el navegador lo soporta.
+      if (track && typeof track.getCapabilities === 'function'){
+        try{
+          const caps = track.getCapabilities();
+          const advanced = {};
+          if (caps.focusMode && caps.focusMode.includes('continuous')) advanced.focusMode = 'continuous';
+          if (caps.exposureMode && caps.exposureMode.includes('continuous')) advanced.exposureMode = 'continuous';
+          if (Object.keys(advanced).length) await track.applyConstraints({ advanced: [advanced] });
+        } catch(e){ /* opcional, se ignora si falla */ }
+      }
+
+      await setupTorch();
+
+      try{ await video.play(); } catch(e){}
+
+      // Espera a tener dimensiones reales de vídeo antes de arrancar la vista en vivo.
+      if (video.readyState >= 2 && video.videoWidth){
+        startLive();
+      } else {
+        video.addEventListener('loadedmetadata', () => startLive(), { once: true });
+      }
     }
 
     function close(){
-      if (stream){
-        stream.getTracks().forEach(t => t.stop());
-        stream = null;
-      }
+      stopLive();
+      if (track){ try{ if (torchOn) track.applyConstraints({ advanced: [{ torch:false }] }); } catch(e){} }
+      if (stream){ stream.getTracks().forEach(t => t.stop()); stream = null; }
+      track = null;
       video.srcObject = null;
       modal.hidden = true;
     }
 
-    async function capture(){
+    function capture(){
       const vw = video.videoWidth;
       const vh = video.videoHeight;
       if (!vw || !vh){
@@ -716,42 +872,42 @@ body{
         return;
       }
 
+      stopLive();
+
       canvas.width = vw;
       canvas.height = vh;
       const ctx = canvas.getContext('2d', { willReadFrequently: true });
       ctx.drawImage(video, 0, 0, vw, vh);
 
-      infoEl.textContent = 'Procesando con IA…';
-      btnCapture.disabled = true;
-
       let res;
-      try{
-        res = await processFrameAI(canvas);
-      } catch(e){
+      try{ res = processFrame(canvas, PROC_W); } // resolución alta para el resultado final
+      catch(e){
         console.error(e);
         infoEl.textContent = 'Error procesando la imagen: ' + e.message;
-        btnCapture.disabled = false;
+        startLive();
         return;
       }
-
       result = res;
-      drawOverlay(ctx, res);
+
+      drawDetectionOverlay(ctx, canvas.width, canvas.height, res);
+
       video.hidden = true;
+      overlay.hidden = true;
       canvas.hidden = false;
 
-      const boxes = res.boxCount;
+      const n = res.groups.length;
       const t = res.total;
 
-      if (boxes === 0){
-        infoEl.innerHTML = 'No se detectaron pips.<br>Prueba con más contraste, mejor luz y las fichas separadas.';
+      if (t === 0){
+        infoEl.innerHTML = 'No se detectaron puntos.<br>Prueba con más contraste, mejor luz y las fichas separadas.';
         btnCapture.hidden = true;
         btnRetry.hidden = false;
         btnAddA.hidden = true;
         btnAddB.hidden = true;
       } else {
         infoEl.innerHTML =
-          `<strong>${boxes}</strong> pips detectados · ` +
-          `Total: <strong style="color:#7bb4ff;font-size:1.1em">${t}</strong><br>` +
+          `Suma total: <strong style="color:#7bb4ff;font-size:1.15em">${t}</strong> pips · ` +
+          `aprox. <strong>${n}</strong> ficha(s)<br>` +
           `<span style="font-size:12px;opacity:.7">Revisa los círculos azules antes de añadir.</span>`;
         btnCapture.hidden = true;
         btnRetry.hidden = false;
@@ -760,24 +916,10 @@ body{
       }
     }
 
-    function drawOverlay(ctx, res){
-      ctx.save();
-
-      for (const p of res.pips){
-        const x = p.minX;
-        const y = p.minY;
-        const w = p.maxX - p.minX;
-        const h = p.maxY - p.minY;
-
-        ctx.strokeStyle = 'rgba(90,162,255,.95)';
-        ctx.lineWidth = Math.max(2, Math.round(ctx.canvas.width / 400));
-        ctx.strokeRect(x, y, w, h);
-      }
-
-      ctx.restore();
+    function retry(){
+      resetUI();
+      startLive();
     }
-
-    function retry(){ resetUI(); }
 
     function addTo(column){
       if (!result || !column) return;
@@ -790,19 +932,25 @@ body{
     btnRetry.addEventListener('click', retry);
     btnAddA.addEventListener('click', () => addTo(colA));
     btnAddB.addEventListener('click', () => addTo(colB));
+    btnTorch.addEventListener('click', toggleTorch);
 
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && !modal.hidden) close();
     });
 
+    // Si la pestaña pasa a segundo plano, pausa el bucle en vivo para ahorrar batería/CPU
+    // y reanúdalo al volver, siempre que seguimos en la vista de vídeo (no en un resultado capturado).
+    document.addEventListener('visibilitychange', () => {
+      if (modal.hidden) return;
+      if (document.hidden){ stopLive(); }
+      else if (!video.hidden){ startLive(); }
+    });
+
     return { open, close };
   })();
 
-  /* =========================================================
-     Arranque
-     ========================================================= */
+  /* ============ Arranque ============ */
   const saved = readStorage();
-
   if (saved && (typeof saved.threshold === 'string' || typeof saved.threshold === 'number')){
     thresholdEl.value = String(saved.threshold);
   }
@@ -811,28 +959,13 @@ body{
   colB = new Column(document.getElementById('col_b'), updateColors, saved ? saved.colB : null);
 
   thresholdEl.addEventListener('input', updateColors);
-
-  resetBtn.addEventListener('click', () => {
-    colA.resetRows();
-    colB.resetRows();
-    updateColors();
-  });
-
+  resetBtn.addEventListener('click', () => { colA.resetRows(); colB.resetRows(); updateColors(); });
   scanBtn.addEventListener('click', () => CamScanner.open());
 
   loading = false;
   updateColors();
 })();
 </script>
-
-<!-- Registro del Service Worker para uso offline -->
-<script>
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js')
-        .catch(err => console.warn('Service worker no registrado:', err));
-    });
-  }
-</script>
 </body>
 </html>
+
