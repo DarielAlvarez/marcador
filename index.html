@@ -381,8 +381,8 @@
   /* =========================================================
      ============  VISIÓN  (adaptativo)  ====================
      ========================================================= */
-  const PROC_W = 640;       // resolución de proceso para la captura final (alta calidad)
-  const PROC_W_LIVE = 420;  // resolución más baja para la vista previa en vivo (rendimiento)
+  const PROC_W = 640;       // resolución de proceso para la captura final
+  const PROC_W_LIVE = 420;  // resolución más baja para la vista previa en vivo
 
   /* --- Grayscale --- */
   function toGray(imgData, w, h){
@@ -394,8 +394,7 @@
     return gray;
   }
 
-  /* --- Blur de caja separable O(n), usado tanto para suavizado como para
-         estimar el "fondo" de iluminación local --- */
+  /* --- Blur de caja separable O(n) --- */
   function boxBlur(src, w, h, radius){
     if (radius < 1) return Float32Array.from(src);
     const tmp = new Float32Array(w*h);
@@ -431,10 +430,7 @@
     return out;
   }
 
-  /* --- Aplanado de iluminación ---
-     Estimamos el "fondo" de iluminación local con un desenfoque grande y lo
-     restamos de la imagen. Así cada zona se normaliza contra su propia
-     iluminación en vez de compararse con la media de toda la escena. */
+  /* --- Aplanado de iluminación --- */
   function flattenIllumination(gray, w, h){
     const radius = Math.max(4, Math.round(Math.min(w, h) / 7));
     const background = boxBlur(gray, w, h, radius);
@@ -443,7 +439,6 @@
       const v = 128 + (gray[i] - background[i]);
       flat[i] = v < 0 ? 0 : (v > 255 ? 255 : v);
     }
-    // Suavizado ligero adicional para reducir ruido de alta frecuencia
     const smoothed = boxBlur(flat, w, h, 1);
     const out = new Uint8Array(w*h);
     for (let i = 0; i < flat.length; i++) out[i] = smoothed[i] | 0;
@@ -473,7 +468,7 @@
     return thr;
   }
 
-  /* --- Componentes conexas iterativo (4-vecinos) --- */
+  /* --- Componentes conexas iterativo (4-vecinos) con momentos para PCA --- */
   function connectedComponents(bin, w, h){
     const labels = new Int32Array(w*h).fill(-1);
     const stack  = new Int32Array(w*h);
@@ -489,13 +484,16 @@
         stack[sp++] = idx;
         labels[idx] = label;
 
-        let area = 0, minX = x, maxX = x, minY = y, maxY = y, sumX = 0, sumY = 0;
+        let area = 0, minX = x, maxX = x, minY = y, maxY = y;
+        let sumX = 0, sumY = 0, sumXX = 0, sumYY = 0, sumXY = 0;
 
         while (sp > 0){
           const p  = stack[--sp];
           const py = (p / w) | 0;
           const px = p - py*w;
-          area++; sumX += px; sumY += py;
+          area++;
+          sumX  += px;       sumY  += py;
+          sumXX += px*px;    sumYY += py*py;    sumXY += px*py;
           if (px < minX) minX = px;
           if (px > maxX) maxX = px;
           if (py < minY) minY = py;
@@ -509,20 +507,35 @@
 
         const bw = maxX - minX + 1;
         const bh = maxY - minY + 1;
+        const cx = sumX / area;
+        const cy = sumY / area;
+
+        // Momentos centrales de 2º orden (PCA) → elongación.
+        // Un pip real es circular (elongación ≈ 1).
+        // Un trozo de línea es alargado (elongación alta).
+        const mxx = sumXX/area - cx*cx;
+        const myy = sumYY/area - cy*cy;
+        const mxy = sumXY/area - cx*cy;
+        const trace = mxx + myy;
+        const diff  = mxx - myy;
+        const disc  = Math.sqrt(diff*diff/4 + mxy*mxy);
+        const lam1  = trace/2 + disc;
+        const lam2  = Math.max(1e-6, trace/2 - disc);
+        const elongation = Math.sqrt(lam1 / lam2);
+
         comps.push({
           label, area, minX, maxX, minY, maxY,
           width: bw, height: bh,
-          cx: sumX/area, cy: sumY/area,
-          fill: area / (bw * bh)
+          cx, cy,
+          fill: area / (bw * bh),
+          elongation
         });
       }
     }
     return comps;
   }
 
-  /* --- Apertura morfológica (erosión + dilatación) con kernel cuadrado.
-         Se aplica sobre la imagen binaria para eliminar ruido de sal y
-         pimienta y motas de pocos píxeles antes de etiquetar componentes. --- */
+  /* --- Apertura morfológica (erosión + dilatación) --- */
   function morphOpen(bin, w, h, radius){
     const eroded = new Uint8Array(w*h);
     for (let y = 0; y < h; y++){
@@ -559,23 +572,38 @@
     return out;
   }
 
-  /* --- Filtrado adaptativo: filtro laxo + mediana --- */
+  /* --- Filtrado adaptativo con filtro de forma (PCA + fill) ---
+     Se rechazan:
+       · formas alargadas (trozo de línea separadora, bordes de ficha)
+       · rectángulos macizos (fill ≈ 1.0, típico de trozos de línea)
+       · ruido pequeño
+  */
   function filterPips(candidates, imgW, imgH){
-    const maxDim = Math.min(imgW, imgH) * 0.35;
-    // Área mínima absoluta: un pip real nunca es más pequeño que ~0.02 % de la imagen.
+    const maxDim     = Math.min(imgW, imgH) * 0.35;
     const minAbsArea = Math.max(16, (imgW * imgH) * 0.0002);
 
     const loose = candidates.filter(c => {
       if (c.area < minAbsArea) return false;
       if (c.width < 3 || c.height < 3) return false;
       if (c.width > maxDim || c.height > maxDim) return false;
+
+      // (1) Elongación por PCA: descarta líneas y sus trozos.
+      if (c.elongation > 2.0) return false;
+
+      // (2) Aspect ratio: un pip real cabe sobradamente.
       const aspect = Math.max(c.width, c.height) / Math.min(c.width, c.height);
-      if (aspect > 3.0) return false;
+      if (aspect > 2.4) return false;
+
+      // (3) Forma: un pip real tiene fill ≈ 0.785 (círculo en caja cuadrada).
+      //     Un trozo de línea recto tiene fill ≈ 1.0 → se rechaza.
       if (c.fill < 0.45) return false;
-      if (c.fill > 0.93) return false;
+      if (c.fill > 0.85) return false;
+
+      // (4) Cobertura respecto a la circunferencia equivalente.
       const r = (c.width + c.height) / 4;
       const circleArea = Math.PI * r * r;
       if (c.area / circleArea < 0.45) return false;
+
       return true;
     });
 
@@ -637,15 +665,12 @@
     } else {
       for (let i = 0; i < flat.length; i++) bin[i] = flat[i] >= thr ? 1 : 0;
     }
-    // Apertura morfológica: elimina motas de 1–3 px antes de etiquetar componentes.
     bin = morphOpen(bin, w, h, 1);
     const comps = connectedComponents(bin, w, h);
     return filterPips(comps, w, h);
   }
 
-  /* --- Pipeline completo ---
-     procW controla la resolución de trabajo: más baja y rápida para la
-     vista previa en vivo, más alta para la captura final. */
+  /* --- Pipeline completo --- */
   function processFrame(srcCanvas, procW){
     const srcW = srcCanvas.width;
     const srcH = srcCanvas.height;
@@ -691,8 +716,7 @@
     return { pips: chosenPips, groups: chosenGroups, total };
   }
 
-  /* --- Dibuja el overlay de detección sobre un contexto 2D dado,
-         a la resolución (w,h) de ese contexto --- */
+  /* --- Dibuja el overlay de detección --- */
   function drawDetectionOverlay(ctx, w, h, res){
     ctx.clearRect(0, 0, w, h);
     ctx.save();
@@ -768,7 +792,6 @@
       btnAddB.hidden = true;
     }
 
-    /* --- Vista previa en vivo --- */
     function syncOverlaySize(){
       const vw = video.videoWidth, vh = video.videoHeight;
       if (!vw || !vh) return false;
