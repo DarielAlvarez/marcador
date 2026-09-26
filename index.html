@@ -89,6 +89,8 @@
   .controls button:active{ transform:translateY(1px); }
   #scan{ background:rgba(90,162,255,.18); border-color:rgba(90,162,255,.45); color:#cfe2ff; }
   #scan:hover{ background:rgba(90,162,255,.3); border-color:rgba(90,162,255,.7); }
+  #scanDebug{ background:rgba(255,200,80,.14); border-color:rgba(255,200,80,.4); color:#ffe2a8; }
+  #scanDebug:hover{ background:rgba(255,200,80,.25); border-color:rgba(255,200,80,.6); }
 
   .modal{
     position:fixed; inset:0; background:rgba(0,0,0,.85); backdrop-filter:blur(4px);
@@ -96,6 +98,7 @@
   }
   .modal[hidden]{ display:none; }
   .modal-content{
+    position:relative;
     width:100%; max-width:760px; max-height:96vh;
     background:#1b1b22; border:1px solid rgba(255,255,255,.08); border-radius:16px;
     overflow:hidden; display:flex; flex-direction:column; box-shadow:0 20px 60px rgba(0,0,0,.55);
@@ -108,6 +111,7 @@
   .cam-stage{
     position:relative; background:#000; display:flex; align-items:center; justify-content:center;
     min-height:240px; max-height:58vh; overflow:hidden;
+    transition:max-height .25s ease, min-height .25s ease;
   }
   .cam-view{ position:relative; display:inline-block; max-width:100%; max-height:58vh; line-height:0; }
   .cam-view video{ display:block; max-width:100%; max-height:58vh; }
@@ -132,6 +136,8 @@
   .modal-actions .btn-b{ background:rgba(90,162,255,.85); color:#0a0e14; border-color:rgba(90,162,255,.85); }
   .modal-actions .btn-torch{ background:rgba(255,200,80,.18); border-color:rgba(255,200,80,.45); color:#ffe2a8; }
   .modal-actions .btn-torch.on{ background:rgba(255,200,80,.85); color:#3a2a00; border-color:rgba(255,200,80,.85); }
+  .modal-actions .btn-debug{ background:rgba(255,200,80,.14); border-color:rgba(255,200,80,.4); color:#ffe2a8; }
+  .modal-actions .btn-debug.active{ background:rgba(255,200,80,.85); color:#3a2a00; border-color:rgba(255,200,80,.85); }
 
   .live-badge{
     position:absolute; top:8px; left:8px; padding:4px 9px; border-radius:999px;
@@ -146,6 +152,102 @@
     100%{ box-shadow:0 0 0 0 rgba(90,162,255,0); }
   }
 
+  /* ===== Modo debug ===== */
+  .modal-content.debug-on .cam-stage{ max-height:26vh; min-height:130px; }
+  .modal-content.debug-on .cam-view,
+  .modal-content.debug-on .cam-view video,
+  .modal-content.debug-on .cam-view canvas#camCanvas{ max-height:26vh; }
+  .modal-content.debug-on .modal-info{ display:none; }
+
+  .debug-panel{
+    flex:1 1 auto; min-height:0; overflow-y:auto;
+    display:none;
+    padding:14px 16px 20px;
+    background:rgba(10,10,14,.55);
+    border-top:1px solid rgba(255,255,255,.08);
+    -webkit-overflow-scrolling:touch;
+    font-size:13px;
+  }
+  .modal-content.debug-on .debug-panel{ display:block; }
+
+  .debug-panel .dbg-head{
+    display:flex; align-items:center; justify-content:space-between;
+    margin:0 0 12px; color:#cfe2ff; font-size:12px; font-weight:600;
+    letter-spacing:1px; text-transform:uppercase;
+  }
+  .debug-panel .dbg-badge{
+    font-size:10.5px; padding:2px 7px; border-radius:999px;
+    background:rgba(255,200,80,.18); color:#ffe2a8; border:1px solid rgba(255,200,80,.4);
+    letter-spacing:.3px;
+  }
+
+  .dbg-section{
+    margin-bottom:14px; padding:10px 12px;
+    border:1px solid rgba(255,255,255,.08); border-radius:12px;
+    background:rgba(255,255,255,.02);
+  }
+  .dbg-section > h4{
+    margin:0 0 10px; font-size:11px; font-weight:700;
+    letter-spacing:1.1px; text-transform:uppercase; color:#9aa0ac;
+  }
+  .dbg-row{ margin-bottom:10px; }
+  .dbg-row:last-child{ margin-bottom:0; }
+  .dbg-row .dbg-label{
+    display:flex; justify-content:space-between; align-items:baseline;
+    margin-bottom:4px; color:#e8eaf0;
+  }
+  .dbg-row .dbg-name{ font-size:12.5px; font-weight:500; }
+  .dbg-row .dbg-val{
+    font-variant-numeric:tabular-nums; font-weight:600;
+    color:#7bb4ff; font-size:12.5px;
+  }
+  .dbg-row .dbg-slider-wrap{ display:grid; grid-template-columns:1fr 68px; gap:8px; align-items:center; }
+  .dbg-row input[type="range"]{
+    width:100%; height:22px; accent-color:#5aa2ff; background:transparent;
+  }
+  .dbg-row input[type="number"]{
+    width:100%; padding:5px 4px;
+    background:rgba(255,255,255,.06); color:#e8eaf0;
+    border:1px solid rgba(255,255,255,.12); border-radius:6px;
+    font:inherit; font-size:12px; text-align:center;
+    font-variant-numeric:tabular-nums; outline:none;
+  }
+  .dbg-row input[type="number"]:focus{ border-color:var(--accent); }
+  .dbg-row .dbg-hint{ font-size:11px; color:#8a92a0; margin-top:3px; line-height:1.35; }
+
+  .dbg-toggle-row{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:8px 0; border-bottom:1px dashed rgba(255,255,255,.08);
+  }
+  .dbg-toggle-row:last-child{ border-bottom:none; }
+  .dbg-toggle-row span{ font-size:12.5px; }
+  .dbg-toggle-row input[type="checkbox"]{ width:38px; height:20px; accent-color:#5aa2ff; }
+
+  .dbg-actions{
+    display:flex; gap:8px; flex-wrap:wrap;
+    padding-top:12px; margin-top:6px;
+    border-top:1px solid rgba(255,255,255,.08);
+  }
+  .dbg-actions button{
+    flex:1 1 auto;
+    padding:9px 12px; font:inherit; font-size:12.5px; font-weight:600;
+    border-radius:8px; cursor:pointer;
+    background:rgba(255,255,255,.06); color:#e8eaf0;
+    border:1px solid rgba(255,255,255,.12);
+    transition:background-color .15s ease;
+  }
+  .dbg-actions button:hover{ background:rgba(255,255,255,.12); }
+  .dbg-actions .dbg-primary{ background:rgba(90,162,255,.85); color:#0a0e14; border-color:rgba(90,162,255,.85); }
+  .dbg-actions .dbg-primary:hover{ background:#7bb4ff; }
+  .dbg-actions .dbg-danger{ background:rgba(214,67,67,.18); color:#ffb4b4; border-color:rgba(214,67,67,.4); }
+  .dbg-actions .dbg-danger:hover{ background:rgba(214,67,67,.3); }
+
+  .dbg-copied{
+    margin-top:8px; text-align:center; font-size:12px;
+    color:#7bd8a1; opacity:0; transition:opacity .2s ease;
+  }
+  .dbg-copied.show{ opacity:1; }
+
   @media (max-width: 480px){
     body{ padding:14px 10px 24px; }
     .column{ padding:14px 12px; gap:10px; border-radius:14px; }
@@ -153,6 +255,10 @@
     .sum-value{ font-size:22px; }
     .header h1{ font-size:16px; }
     .header .hint{ display:none; }
+    .modal-content.debug-on .cam-stage{ max-height:22vh; min-height:110px; }
+    .modal-content.debug-on .cam-view,
+    .modal-content.debug-on .cam-view video,
+    .modal-content.debug-on .cam-view canvas#camCanvas{ max-height:22vh; }
   }
 </style>
 </head>
@@ -182,13 +288,14 @@
     <label for="threshold">Umbral</label>
     <input id="threshold" type="text" inputmode="decimal" value="150" autocomplete="off">
     <button id="scan" type="button">📷 Escanear fichas</button>
+    <button id="scanDebug" type="button">🔧 Modo debug</button>
     <button id="reset" type="button">Reiniciar</button>
   </div>
 
 </div>
 
 <div class="modal" id="camModal" hidden>
-  <div class="modal-content">
+  <div class="modal-content" id="modalContent">
     <div class="modal-header">
       <h2>Escanear fichas de dominó</h2>
       <button class="modal-close" id="camClose" type="button">✕</button>
@@ -201,12 +308,25 @@
         <span class="live-badge" id="liveBadge" hidden><span class="dot"></span>EN VIVO</span>
       </div>
     </div>
+    <div class="debug-panel" id="debugPanel">
+      <div class="dbg-head">
+        <span>Panel de ajuste</span>
+        <span class="dbg-badge">DEBUG</span>
+      </div>
+      <div id="debugSections"></div>
+      <div class="dbg-actions">
+        <button class="dbg-primary" id="dbgCopy" type="button">📋 Exportar config</button>
+        <button class="dbg-danger" id="dbgReset" type="button">↻ Valores por defecto</button>
+      </div>
+      <div class="dbg-copied" id="dbgCopied">✓ Config copiada al portapapeles</div>
+    </div>
     <div class="modal-info" id="camInfo">
       Mueve el móvil hasta que los puntos queden marcados en azul, luego pulsa «Capturar y contar».<br>
       Consejo: fondo contrastante, fichas separadas, evita reflejos directos.
     </div>
     <div class="modal-actions">
       <button id="camTorch" class="btn-torch" type="button" hidden>💡 Linterna</button>
+      <button id="camDebugToggle" class="btn-debug" type="button">🔧</button>
       <button id="camCapture" class="btn-primary" type="button">Capturar y contar</button>
       <button id="camRetry" type="button" hidden>↻ Reintentar</button>
       <button id="camAddA" class="btn-a" type="button" hidden>→ Columna A</button>
@@ -219,7 +339,129 @@
 (() => {
   'use strict';
 
-  /* ============ Persistencia ============ */
+  /* ============================================================
+     ============  PARÁMETROS DE VISIÓN (ajustables)  ===========
+     ============================================================ */
+  const VISION_DEFAULTS = {
+    // Filtros de forma (los más importantes para descartar la línea)
+    elongationMax: 2.0,
+    aspectMax: 2.4,
+    fillMin: 0.45,
+    fillMax: 0.85,
+    circleCovMin: 0.45,
+    // Tamaño
+    areaMinFactor: 0.0002,
+    maxDimPct: 0.35,
+    medianAreaMin: 0.40,
+    medianAreaMax: 3.50,
+    medianSideMin: 0.55,
+    medianSideMax: 2.50,
+    // Umbral / preprocesado
+    otsuOffset: 0,
+    blurRadiusDiv: 7,
+    morphRadius: 1,
+    // Overlay / agrupación
+    groupDistFac: 4.5,
+    // Rendimiento
+    procW: 640,
+    procWLive: 420,
+    liveIntervalMs: 350,
+    // Visualización de debug
+    debugDrawRejected: true,
+  };
+
+  const DEBUG_SPEC = [
+    {
+      title: 'Filtros de forma',
+      hint: 'Reglas clave para descartar la línea separadora de la ficha.',
+      items: [
+        { key: 'elongationMax', name: 'Elongación máx.', min: 1.0, max: 5.0, step: 0.05,
+          hint: 'Un pip real ≈ 1. Un trozo de línea es alargado (valores altos). Bájalo si se cuelan líneas.' },
+        { key: 'aspectMax', name: 'Relación de aspecto máx.', min: 1.0, max: 5.0, step: 0.05,
+          hint: 'Ancho/alto máximo. Un pip real ≈ 1.' },
+        { key: 'fillMin', name: 'Relleno mín.', min: 0.0, max: 1.0, step: 0.01,
+          hint: 'Área / (ancho·alto). Un pip real ≈ 0.78.' },
+        { key: 'fillMax', name: 'Relleno máx.', min: 0.0, max: 1.0, step: 0.01,
+          hint: 'Un rectángulo macizo ≈ 1.0. Bájalo si se cuelan líneas.' },
+        { key: 'circleCovMin', name: 'Cobertura circular mín.', min: 0.0, max: 1.0, step: 0.01,
+          hint: 'Área / área del círculo equivalente.' },
+      ],
+    },
+    {
+      title: 'Tamaño',
+      hint: 'Un pip no puede ser ni demasiado pequeño ni demasiado grande.',
+      items: [
+        { key: 'areaMinFactor', name: 'Área mín. (fracción imágen)', min: 0.00001, max: 0.005, step: 0.00001,
+          hint: 'Fracción del área total. Sube si aparecen puntitos de ruido.' },
+        { key: 'maxDimPct', name: 'Dimensión máx. (fracción)', min: 0.05, max: 0.9, step: 0.01,
+          hint: 'Nada más grande que este % del lado menor.' },
+        { key: 'medianAreaMin', name: 'Área mín. (× mediana)', min: 0.1, max: 2.0, step: 0.05,
+          hint: 'Comparado con la mediana de candidatos.' },
+        { key: 'medianAreaMax', name: 'Área máx. (× mediana)', min: 1.0, max: 10.0, step: 0.1,
+          hint: 'Los pips pueden variar de tamaño entre fichas.' },
+        { key: 'medianSideMin', name: 'Lado mín. (× mediana)', min: 0.1, max: 2.0, step: 0.05,
+          hint: 'Filtra pips demasiado pequeños.' },
+        { key: 'medianSideMax', name: 'Lado máx. (× mediana)', min: 1.0, max: 8.0, step: 0.1,
+          hint: 'Filtra blobs demasiado grandes.' },
+      ],
+    },
+    {
+      title: 'Umbral y preprocesado',
+      hint: 'Cómo se separan los pips del fondo antes de analizarlos.',
+      items: [
+        { key: 'otsuOffset', name: 'Desplazamiento del umbral', min: -60, max: 60, step: 1,
+          hint: 'Suma este valor al umbral de Otsu. Negativo capta más pips.' },
+        { key: 'blurRadiusDiv', name: 'Divisor del radio de fondo', min: 3, max: 20, step: 1,
+          hint: 'Radio de aplanado de luz = min(lado)/divisor. Menor = más local.' },
+        { key: 'morphRadius', name: 'Radio de apertura morfológica', min: 0, max: 4, step: 1,
+          hint: 'Elimina motas de ruido antes de etiquetar.' },
+      ],
+    },
+    {
+      title: 'Overlay y agrupación',
+      hint: 'Solo afecta a la visualización.',
+      items: [
+        { key: 'groupDistFac', name: 'Distancia de agrupación', min: 1.0, max: 10.0, step: 0.1,
+          hint: 'Distancia máx. entre pips de la misma ficha (× diámetro).' },
+      ],
+    },
+    {
+      title: 'Rendimiento',
+      hint: 'Si la vista previa va lenta en tu móvil, baja estos valores.',
+      items: [
+        { key: 'procW', name: 'Resolución de captura (px)', min: 320, max: 1280, step: 32,
+          hint: 'Ancho de procesamiento al capturar.' },
+        { key: 'procWLive', name: 'Resolución en vivo (px)', min: 240, max: 800, step: 20,
+          hint: 'Ancho de procesamiento en la vista previa.' },
+        { key: 'liveIntervalMs', name: 'Intervalo en vivo (ms)', min: 100, max: 1000, step: 50,
+          hint: 'Cada cuánto se actualiza la vista previa.' },
+      ],
+    },
+  ];
+
+  const VISION_PARAMS_KEY = 'marcador_vision_params_v1';
+
+  function loadVisionParams(){
+    try{
+      const raw = localStorage.getItem(VISION_PARAMS_KEY);
+      if (!raw) return { ...VISION_DEFAULTS };
+      const parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== 'object') return { ...VISION_DEFAULTS };
+      // Solo claves conocidas
+      const out = { ...VISION_DEFAULTS };
+      for (const k of Object.keys(VISION_DEFAULTS)){
+        if (typeof parsed[k] === 'number' && Number.isFinite(parsed[k])) out[k] = parsed[k];
+      }
+      return out;
+    } catch(e){ return { ...VISION_DEFAULTS }; }
+  }
+  function saveVisionParams(p){
+    try{ localStorage.setItem(VISION_PARAMS_KEY, JSON.stringify(p)); } catch(e){}
+  }
+
+  const PARAMS = loadVisionParams();
+
+  /* ============ Persistencia marcador ============ */
   const STORAGE_KEY = 'marcador_state_v1';
   function readStorage(){
     try{
@@ -345,6 +587,7 @@
   const thresholdEl = document.getElementById('threshold');
   const resetBtn    = document.getElementById('reset');
   const scanBtn     = document.getElementById('scan');
+  const scanDebugBtn = document.getElementById('scanDebug');
 
   function setState(el, state){
     el.classList.remove('normal','red','green');
@@ -379,10 +622,8 @@
   }
 
   /* =========================================================
-     ============  VISIÓN  (adaptativo)  ====================
+     ============  VISIÓN  (parametrizada)  =================
      ========================================================= */
-  const PROC_W = 640;       // resolución de proceso para la captura final
-  const PROC_W_LIVE = 420;  // resolución más baja para la vista previa en vivo
 
   /* --- Grayscale --- */
   function toGray(imgData, w, h){
@@ -432,7 +673,7 @@
 
   /* --- Aplanado de iluminación --- */
   function flattenIllumination(gray, w, h){
-    const radius = Math.max(4, Math.round(Math.min(w, h) / 7));
+    const radius = Math.max(4, Math.round(Math.min(w, h) / Math.max(1, PARAMS.blurRadiusDiv)));
     const background = boxBlur(gray, w, h, radius);
     const flat = new Uint8Array(w*h);
     for (let i = 0; i < gray.length; i++){
@@ -465,10 +706,14 @@
       const between = wB * wF * (mB - mF) * (mB - mF);
       if (between > max){ max = between; thr = t; }
     }
+    // Aplicar offset (clamp 0..255)
+    thr = thr + (PARAMS.otsuOffset | 0);
+    if (thr < 0) thr = 0;
+    if (thr > 255) thr = 255;
     return thr;
   }
 
-  /* --- Componentes conexas iterativo (4-vecinos) con momentos para PCA --- */
+  /* --- Componentes conexas con momentos para PCA --- */
   function connectedComponents(bin, w, h){
     const labels = new Int32Array(w*h).fill(-1);
     const stack  = new Int32Array(w*h);
@@ -510,9 +755,6 @@
         const cx = sumX / area;
         const cy = sumY / area;
 
-        // Momentos centrales de 2º orden (PCA) → elongación.
-        // Un pip real es circular (elongación ≈ 1).
-        // Un trozo de línea es alargado (elongación alta).
         const mxx = sumXX/area - cx*cx;
         const myy = sumYY/area - cy*cy;
         const mxy = sumXY/area - cx*cy;
@@ -528,15 +770,17 @@
           width: bw, height: bh,
           cx, cy,
           fill: area / (bw * bh),
-          elongation
+          elongation,
+          _reject: null,   // se rellena si es descartado
         });
       }
     }
     return comps;
   }
 
-  /* --- Apertura morfológica (erosión + dilatación) --- */
+  /* --- Apertura morfológica --- */
   function morphOpen(bin, w, h, radius){
+    if (radius < 1) return bin;
     const eroded = new Uint8Array(w*h);
     for (let y = 0; y < h; y++){
       for (let x = 0; x < w; x++){
@@ -572,67 +816,75 @@
     return out;
   }
 
-  /* --- Filtrado adaptativo con filtro de forma (PCA + fill) ---
-     Se rechazan:
-       · formas alargadas (trozo de línea separadora, bordes de ficha)
-       · rectángulos macizos (fill ≈ 1.0, típico de trozos de línea)
-       · ruido pequeño
-  */
+  /* --- Filtrado adaptativo parametrizado ---
+     accepted: pips que pasan todos los filtros.
+     rejected: candidatos descartados, con motivo (para debug). */
   function filterPips(candidates, imgW, imgH){
-    const maxDim     = Math.min(imgW, imgH) * 0.35;
-    const minAbsArea = Math.max(16, (imgW * imgH) * 0.0002);
+    const maxDim     = Math.min(imgW, imgH) * PARAMS.maxDimPct;
+    const minAbsArea = Math.max(16, (imgW * imgH) * PARAMS.areaMinFactor);
 
-    const loose = candidates.filter(c => {
-      if (c.area < minAbsArea) return false;
-      if (c.width < 3 || c.height < 3) return false;
-      if (c.width > maxDim || c.height > maxDim) return false;
+    const loose = [];
 
-      // (1) Elongación por PCA: descarta líneas y sus trozos.
-      if (c.elongation > 2.0) return false;
+    for (const c of candidates){
+      let reason = null;
+      if (c.area < minAbsArea) reason = 'área pequeña';
+      else if (c.width < 3 || c.height < 3) reason = 'lado < 3px';
+      else if (c.width > maxDim || c.height > maxDim) reason = 'demasiado grande';
+      else if (c.elongation > PARAMS.elongationMax) reason = 'alargado';
+      else {
+        const aspect = Math.max(c.width, c.height) / Math.min(c.width, c.height);
+        if (aspect > PARAMS.aspectMax) reason = 'aspecto';
+        else if (c.fill < PARAMS.fillMin) reason = 'relleno bajo';
+        else if (c.fill > PARAMS.fillMax) reason = 'relleno alto';
+        else {
+          const r = (c.width + c.height) / 4;
+          const circleArea = Math.PI * r * r;
+          if (c.area / circleArea < PARAMS.circleCovMin) reason = 'cobertura';
+        }
+      }
 
-      // (2) Aspect ratio: un pip real cabe sobradamente.
-      const aspect = Math.max(c.width, c.height) / Math.min(c.width, c.height);
-      if (aspect > 2.4) return false;
+      if (reason){ c._reject = reason; continue; }
+      loose.push(c);
+    }
 
-      // (3) Forma: un pip real tiene fill ≈ 0.785 (círculo en caja cuadrada).
-      //     Un trozo de línea recto tiene fill ≈ 1.0 → se rechaza.
-      if (c.fill < 0.45) return false;
-      if (c.fill > 0.85) return false;
-
-      // (4) Cobertura respecto a la circunferencia equivalente.
-      const r = (c.width + c.height) / 4;
-      const circleArea = Math.PI * r * r;
-      if (c.area / circleArea < 0.45) return false;
-
-      return true;
-    });
-
-    if (loose.length < 3) return loose;
+    if (loose.length < 3){
+      return { accepted: loose, rejected: candidates.filter(c => c._reject) };
+    }
 
     const areas  = loose.map(c => c.area).sort((a, b) => a - b);
     const median = areas[Math.floor(areas.length / 2)];
     const medD   = Math.sqrt(median / Math.PI) * 2;
 
-    const minArea = median * 0.40;
-    const maxArea = median * 3.50;
-    const minSide = Math.max(3, medD * 0.55);
-    const maxSide = medD * 2.50;
+    const minArea = median * PARAMS.medianAreaMin;
+    const maxArea = median * PARAMS.medianAreaMax;
+    const minSide = Math.max(3, medD * PARAMS.medianSideMin);
+    const maxSide = medD * PARAMS.medianSideMax;
 
-    return loose.filter(c =>
-      c.area   >= minArea && c.area   <= maxArea &&
-      c.width  >= minSide && c.width  <= maxSide &&
-      c.height >= minSide && c.height <= maxSide
-    );
+    const accepted = [];
+    for (const c of loose){
+      let reason = null;
+      if (c.area   < minArea) reason = 'área < mediana';
+      else if (c.area   > maxArea) reason = 'área > mediana';
+      else if (c.width  < minSide) reason = 'lado < mediana';
+      else if (c.width  > maxSide) reason = 'lado > mediana';
+      else if (c.height < minSide) reason = 'lado < mediana';
+      else if (c.height > maxSide) reason = 'lado > mediana';
+
+      if (reason){ c._reject = reason; }
+      else { accepted.push(c); }
+    }
+
+    const rejected = candidates.filter(c => c._reject);
+    return { accepted, rejected };
   }
 
-  /* --- Agrupar pips (solo para el overlay) --- */
-  const GROUP_DIST_FAC = 4.5;
+  /* --- Agrupar pips --- */
   function groupPips(pips){
     if (pips.length === 0) return [];
     const areas = pips.map(p => p.area).sort((a,b)=>a-b);
     const medianArea = areas[Math.floor(areas.length / 2)];
     const medianD    = Math.sqrt(medianArea / Math.PI) * 2;
-    const maxDist    = medianD * GROUP_DIST_FAC;
+    const maxDist    = medianD * PARAMS.groupDistFac;
     const maxDistSq  = maxDist * maxDist;
 
     const parent = pips.map((_, i) => i);
@@ -656,7 +908,7 @@
     return Array.from(map.values());
   }
 
-  /* --- Detectar pips de una polaridad, sobre imagen ya aplanada --- */
+  /* --- Detección por polaridad --- */
   function detectPips(flat, w, h, polarity){
     const thr = otsu(flat);
     let bin = new Uint8Array(w*h);
@@ -665,7 +917,7 @@
     } else {
       for (let i = 0; i < flat.length; i++) bin[i] = flat[i] >= thr ? 1 : 0;
     }
-    bin = morphOpen(bin, w, h, 1);
+    bin = morphOpen(bin, w, h, PARAMS.morphRadius | 0);
     const comps = connectedComponents(bin, w, h);
     return filterPips(comps, w, h);
   }
@@ -674,7 +926,7 @@
   function processFrame(srcCanvas, procW){
     const srcW = srcCanvas.width;
     const srcH = srcCanvas.height;
-    const PW   = procW || PROC_W;
+    const PW   = procW || PARAMS.procW;
     const PH   = Math.max(1, Math.round(srcH * PW / srcW));
 
     const tmp = document.createElement('canvas');
@@ -687,10 +939,13 @@
     const gray    = toGray(imgData, PW, PH);
     const flat    = flattenIllumination(gray, PW, PH);
 
-    const darkPips  = detectPips(flat, PW, PH, 'dark');
-    const lightPips = detectPips(flat, PW, PH, 'light');
+    const darkRes  = detectPips(flat, PW, PH, 'dark');
+    const lightRes = detectPips(flat, PW, PH, 'light');
 
-    let chosenPips = (lightPips.length > darkPips.length) ? lightPips : darkPips;
+    const useLight = lightRes.accepted.length > darkRes.accepted.length;
+    const chosen   = useLight ? lightRes : darkRes;
+
+    const chosenPips = chosen.accepted;
 
     let total = 0;
     if (chosenPips.length > 0){
@@ -701,26 +956,52 @@
       }
     }
 
+    // Escalar coordenadas y tamaños al espacio original
     const sx = srcW / PW;
     const sy = srcH / PH;
-    for (const p of chosenPips){
-      p.cx *= sx; p.cy *= sy;
-      p.minX *= sx; p.maxX *= sx;
-      p.minY *= sy; p.maxY *= sy;
-      p.width *= sx; p.height *= sy;
-      p.area *= sx * sy;
-    }
+    const scale = (arr) => {
+      for (const p of arr){
+        p.cx *= sx; p.cy *= sy;
+        p.minX *= sx; p.maxX *= sx;
+        p.minY *= sy; p.maxY *= sy;
+        p.width *= sx; p.height *= sy;
+        p.area *= sx * sy;
+      }
+    };
+    scale(chosenPips);
+    scale(chosen.rejected);
 
     const chosenGroups = groupPips(chosenPips);
 
-    return { pips: chosenPips, groups: chosenGroups, total };
+    return {
+      pips: chosenPips,
+      groups: chosenGroups,
+      total,
+      rejected: chosen.rejected,
+      polarity: useLight ? 'light' : 'dark',
+    };
   }
 
-  /* --- Dibuja el overlay de detección --- */
+  /* --- Overlay con pips aceptados + rechazados --- */
   function drawDetectionOverlay(ctx, w, h, res){
     ctx.clearRect(0, 0, w, h);
     ctx.save();
 
+    // Rechazados (solo si debugDrawRejected)
+    if (PARAMS.debugDrawRejected && res.rejected && res.rejected.length){
+      ctx.lineWidth = Math.max(1, Math.round(w / 700));
+      ctx.setLineDash([4, 4]);
+      for (const p of res.rejected){
+        const r = Math.max(p.width, p.height) * 0.62;
+        ctx.beginPath();
+        ctx.arc(p.cx, p.cy, r, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(230,80,80,.75)';
+        ctx.stroke();
+      }
+      ctx.setLineDash([]);
+    }
+
+    // Aceptados
     for (const p of res.pips){
       const r = Math.max(p.width, p.height) * 0.72;
       ctx.beginPath();
@@ -730,6 +1011,7 @@
       ctx.stroke();
     }
 
+    // Cajas de grupo + etiqueta de pips por ficha
     ctx.font = 'bold ' + Math.max(16, Math.round(w / 40)) + 'px sans-serif';
     ctx.textBaseline = 'bottom';
     for (const g of res.groups){
@@ -756,9 +1038,179 @@
     ctx.restore();
   }
 
+  /* ============ Panel de debug ============ */
+  const DebugPanel = (() => {
+    const sectionsEl = document.getElementById('debugSections');
+    const copyBtn    = document.getElementById('dbgCopy');
+    const resetBtn   = document.getElementById('dbgReset');
+    const copiedMsg  = document.getElementById('dbgCopied');
+
+    const inputs = new Map();  // key -> { range, number, valEl }
+
+    function decimalsForStep(step){
+      if (step >= 1) return 0;
+      return Math.min(6, Math.max(0, -Math.floor(Math.log10(step))));
+    }
+    function fmt(v, step){
+      const d = decimalsForStep(step);
+      return Number(v).toFixed(d);
+    }
+
+    function build(){
+      sectionsEl.innerHTML = '';
+      inputs.clear();
+
+      for (const section of DEBUG_SPEC){
+        const secEl = document.createElement('div');
+        secEl.className = 'dbg-section';
+        const h = document.createElement('h4');
+        h.textContent = section.title;
+        secEl.appendChild(h);
+
+        for (const item of section.items){
+          const row = document.createElement('div');
+          row.className = 'dbg-row';
+
+          const label = document.createElement('div');
+          label.className = 'dbg-label';
+          const name = document.createElement('span');
+          name.className = 'dbg-name';
+          name.textContent = item.name;
+          const val = document.createElement('span');
+          val.className = 'dbg-val';
+          val.textContent = fmt(PARAMS[item.key], item.step);
+          label.appendChild(name);
+          label.appendChild(val);
+
+          const wrap = document.createElement('div');
+          wrap.className = 'dbg-slider-wrap';
+
+          const range = document.createElement('input');
+          range.type = 'range';
+          range.min = item.min; range.max = item.max; range.step = item.step;
+          range.value = PARAMS[item.key];
+
+          const number = document.createElement('input');
+          number.type = 'number';
+          number.min = item.min; number.max = item.max; number.step = item.step;
+          number.value = fmt(PARAMS[item.key], item.step);
+
+          wrap.appendChild(range);
+          wrap.appendChild(number);
+          row.appendChild(label);
+          row.appendChild(wrap);
+
+          if (item.hint){
+            const hint = document.createElement('div');
+            hint.className = 'dbg-hint';
+            hint.textContent = item.hint;
+            row.appendChild(hint);
+          }
+
+          const apply = (raw, source) => {
+            let v = parseFloat(raw);
+            if (!Number.isFinite(v)) return;
+            if (v < item.min) v = item.min;
+            if (v > item.max) v = item.max;
+            PARAMS[item.key] = v;
+            val.textContent = fmt(v, item.step);
+            if (source !== 'range')  range.value = v;
+            if (source !== 'number') number.value = fmt(v, item.step);
+            saveVisionParams(PARAMS);
+
+            // Cambios que requieren reiniciar el ciclo en vivo
+            if (item.key === 'liveIntervalMs'){
+              // Notificado a CamScanner vía evento global
+              window.dispatchEvent(new CustomEvent('vision-live-interval-changed'));
+            }
+          };
+
+          range.addEventListener('input', () => apply(range.value, 'range'));
+          number.addEventListener('input', () => apply(number.value, 'number'));
+
+          // Toggle genérico para booleanos tipo checkbox
+          inputs.set(item.key, { range, number, val, item });
+          secEl.appendChild(row);
+        }
+
+        sectionsEl.appendChild(secEl);
+      }
+
+      // Toggle "mostrar rechazados" al final
+      const tgl = document.createElement('div');
+      tgl.className = 'dbg-section';
+      const th = document.createElement('h4');
+      th.textContent = 'Visualización';
+      tgl.appendChild(th);
+
+      const rowT = document.createElement('div');
+      rowT.className = 'dbg-toggle-row';
+      const spanT = document.createElement('span');
+      spanT.textContent = 'Mostrar componentes rechazados (rojo)';
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.checked = !!PARAMS.debugDrawRejected;
+      cb.addEventListener('change', () => {
+        PARAMS.debugDrawRejected = !!cb.checked;
+        saveVisionParams(PARAMS);
+      });
+      rowT.appendChild(spanT);
+      rowT.appendChild(cb);
+      tgl.appendChild(rowT);
+      sectionsEl.appendChild(tgl);
+    }
+
+    function refreshFromParams(){
+      for (const [key, { range, number, val, item }] of inputs){
+        const v = PARAMS[key];
+        if (range.value !== String(v)) range.value = v;
+        const fv = fmt(v, item.step);
+        if (number.value !== fv) number.value = fv;
+        val.textContent = fv;
+      }
+    }
+
+    async function copyConfig(){
+      const json = JSON.stringify(PARAMS, null, 2);
+      let ok = false;
+      try{
+        if (navigator.clipboard && navigator.clipboard.writeText){
+          await navigator.clipboard.writeText(json);
+          ok = true;
+        }
+      } catch(e){ ok = false; }
+      if (!ok){
+        // Fallback: prompt
+        try{ window.prompt('Copia esta config:', json); } catch(e){}
+        return;
+      }
+      copiedMsg.classList.add('show');
+      setTimeout(() => copiedMsg.classList.remove('show'), 1800);
+    }
+
+    function resetDefaults(){
+      for (const k of Object.keys(VISION_DEFAULTS)){
+        PARAMS[k] = VISION_DEFAULTS[k];
+      }
+      saveVisionParams(PARAMS);
+      refreshFromParams();
+      // Refrescar checkbox de rechazados
+      const cb = sectionsEl.querySelector('input[type="checkbox"]');
+      if (cb) cb.checked = !!PARAMS.debugDrawRejected;
+    }
+
+    copyBtn.addEventListener('click', copyConfig);
+    resetBtn.addEventListener('click', resetDefaults);
+
+    build();
+
+    return { refreshFromParams };
+  })();
+
   /* ============ Modal cámara ============ */
   const CamScanner = (() => {
     const modal      = document.getElementById('camModal');
+    const modalContent = document.getElementById('modalContent');
     const camView    = document.getElementById('camView');
     const video      = document.getElementById('camVideo');
     const overlay    = document.getElementById('camOverlay');
@@ -771,13 +1223,20 @@
     const btnAddA    = document.getElementById('camAddA');
     const btnAddB    = document.getElementById('camAddB');
     const btnTorch   = document.getElementById('camTorch');
+    const btnDebug   = document.getElementById('camDebugToggle');
 
     const overlayCtx = overlay.getContext('2d');
 
     let stream = null, track = null, result = null;
     let torchOn = false, torchSupported = false;
     let liveTimer = null, liveBusy = false, liveCanvas = null;
-    const LIVE_INTERVAL_MS = 350;
+    let debugOn = false;
+
+    function setDebug(on){
+      debugOn = !!on;
+      modalContent.classList.toggle('debug-on', debugOn);
+      btnDebug.classList.toggle('active', debugOn);
+    }
 
     function resetUI(){
       result = null;
@@ -813,7 +1272,7 @@
         const lctx = liveCanvas.getContext('2d', { willReadFrequently: true });
         lctx.drawImage(video, 0, 0, liveCanvas.width, liveCanvas.height);
 
-        const res = processFrame(liveCanvas, PROC_W_LIVE);
+        const res = processFrame(liveCanvas, PARAMS.procWLive);
         drawDetectionOverlay(overlayCtx, overlay.width, overlay.height, res);
       } catch(e){
         console.warn('live preview:', e);
@@ -825,7 +1284,7 @@
     function startLive(){
       stopLive();
       liveBadge.hidden = false;
-      liveTimer = setInterval(liveTick, LIVE_INTERVAL_MS);
+      liveTimer = setInterval(liveTick, Math.max(60, PARAMS.liveIntervalMs | 0));
     }
 
     function stopLive(){
@@ -863,12 +1322,14 @@
       }
     }
 
-    async function open(){
+    async function open(opts){
+      const debug = !!(opts && opts.debug);
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
         alert('Tu navegador no soporta acceso a la cámara (getUserMedia).');
         return;
       }
       resetUI();
+      setDebug(debug);
       modal.hidden = false;
 
       try{
@@ -917,6 +1378,7 @@
       track = null;
       video.srcObject = null;
       modal.hidden = true;
+      setDebug(false);
     }
 
     function capture(){
@@ -935,7 +1397,7 @@
       ctx.drawImage(video, 0, 0, vw, vh);
 
       let res;
-      try{ res = processFrame(canvas, PROC_W); }
+      try{ res = processFrame(canvas, PARAMS.procW); }
       catch(e){
         console.error(e);
         infoEl.textContent = 'Error procesando la imagen: ' + e.message;
@@ -960,10 +1422,13 @@
         btnAddA.hidden = true;
         btnAddB.hidden = true;
       } else {
+        const rejInfo = (res.rejected && res.rejected.length)
+          ? ` · <span style="color:#e6a0a0">${res.rejected.length} descartados</span>`
+          : '';
         infoEl.innerHTML =
           `Suma total: <strong style="color:#7bb4ff;font-size:1.15em">${t}</strong> pips · ` +
-          `aprox. <strong>${n}</strong> ficha(s)<br>` +
-          `<span style="font-size:12px;opacity:.7">Revisa los círculos azules antes de añadir.</span>`;
+          `aprox. <strong>${n}</strong> ficha(s)${rejInfo}<br>` +
+          `<span style="font-size:12px;opacity:.7">Revisa los círculos antes de añadir.</span>`;
         btnCapture.hidden = true;
         btnRetry.hidden = false;
         btnAddA.hidden = false;
@@ -988,6 +1453,7 @@
     btnAddA.addEventListener('click', () => addTo(colA));
     btnAddB.addEventListener('click', () => addTo(colB));
     btnTorch.addEventListener('click', toggleTorch);
+    btnDebug.addEventListener('click', () => setDebug(!debugOn));
 
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && !modal.hidden) close();
@@ -997,6 +1463,11 @@
       if (modal.hidden) return;
       if (document.hidden){ stopLive(); }
       else if (!video.hidden){ startLive(); }
+    });
+
+    // El panel de debug puede cambiar el intervalo en vivo → reiniciar el ciclo
+    window.addEventListener('vision-live-interval-changed', () => {
+      if (!modal.hidden && !video.hidden) startLive();
     });
 
     return { open, close };
@@ -1013,11 +1484,12 @@
 
   thresholdEl.addEventListener('input', updateColors);
   resetBtn.addEventListener('click', () => { colA.resetRows(); colB.resetRows(); updateColors(); });
-  scanBtn.addEventListener('click', () => CamScanner.open());
+  scanBtn.addEventListener('click', () => CamScanner.open({ debug: false }));
+  scanDebugBtn.addEventListener('click', () => CamScanner.open({ debug: true }));
 
   loading = false;
   updateColors();
 })();
 </script>
 </body>
-</html>
+  </html>
